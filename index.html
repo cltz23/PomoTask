@@ -31,9 +31,12 @@
     .muted { color:var(--muted); font-size:.86rem; }
     .toast { min-height:1.1rem; color:var(--ok); font-size:.9rem; }
     .task-list { list-style:none; margin:0; padding:0; display:grid; gap:.4rem; max-height:45vh; overflow:auto; }
-    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:auto 1fr auto; gap:.5rem; align-items:center; }
+    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.6rem .65rem; display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:start; }
     .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
-    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
+    .task-main { font-size:1.04rem; font-weight:650; line-height:1.35; word-break:break-word; }
+    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.78rem; word-break:break-word; opacity:.8; }
+    .task-meta { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.35rem; }
+    .chip { border:1px solid var(--border); border-radius:999px; padding:.12rem .5rem; font-size:.73rem; color:var(--muted); }
     .settings-menu summary { cursor:pointer; font-weight:600; }
     .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:1fr 1fr; gap:.55rem .8rem; align-items:center; }
     .full { grid-column: 1 / -1; }
@@ -247,6 +250,47 @@
       base = `${base} pomos:${task.pomos}`.trim();
       if (task.today) base += ' today:true';
       task.line = base;
+      const reparsed = parseTodoLine(task.line);
+      if (reparsed) {
+        task.contexts = reparsed.contexts;
+        task.projects = reparsed.projects;
+        task.keyValues = reparsed.keyValues;
+        task.priority = reparsed.priority;
+        task.creationDate = reparsed.creationDate;
+        task.completionDate = reparsed.completionDate;
+      }
+    }
+
+    function compareTodoOrder(a, b) {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+
+      const aPri = a.priority || '{';
+      const bPri = b.priority || '{';
+      if (aPri !== bPri) return aPri < bPri ? -1 : 1;
+
+      const aDate = a.creationDate || '9999-99-99';
+      const bDate = b.creationDate || '9999-99-99';
+      if (aDate !== bDate) return aDate < bDate ? -1 : 1;
+
+      return a.line.localeCompare(b.line);
+    }
+
+    function sortedTasks(tasks) {
+      return [...tasks].sort(compareTodoOrder);
+    }
+
+    function getTaskCoreText(line) {
+      return line
+        .replace(/^x\s+/, '')
+        .replace(/^\([A-Z]\)\s+/, '')
+        .replace(/^\d{4}-\d{2}-\d{2}\s+/, '')
+        .replace(/^\d{4}-\d{2}-\d{2}\s+/, '')
+        .replace(/\s+\bpomos:\d+\b/i, '')
+        .replace(/\s+\btoday:true\b/i, '')
+        .replace(/\s+@[\S]+/g, '')
+        .replace(/\s+\+[\S]+/g, '')
+        .replace(/\s+[^\s:]+:[^\s:]+/g, '')
+        .trim();
     }
 
     function phaseDurationSeconds(phase) {
@@ -375,7 +419,7 @@
       const ctxTokens = state.filter.context.toLowerCase().split(/[\s,]+/).map(x => x.replace(/^@/, '').trim()).filter(Boolean);
       const projTokens = state.filter.project.toLowerCase().split(/[\s,]+/).map(x => x.replace(/^\+/, '').trim()).filter(Boolean);
       const kvTokens = state.filter.kv.toLowerCase().split(/[\s,]+/).map(x => x.trim()).filter(Boolean).map(token => token.split(':')).filter(parts => parts.length === 2 && parts[0] && parts[1]);
-      return state.tasks.filter(task => {
+      return sortedTasks(state.tasks).filter(task => {
         if (state.filter.status === 'open' && task.completed) return false;
         if (state.filter.status === 'done' && !task.completed) return false;
         if (state.filter.status === 'today' && !task.today) return false;
@@ -400,8 +444,21 @@
         selectBtn.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
 
         const line = document.createElement('div');
-        const pill = task.today ? `<span class="today-pill">${t('todayMark')}</span>` : '';
-        line.innerHTML = `<div class="task-line">${escapeHtml(task.line)}</div><div class="muted">pomos: ${task.pomos} ${pill}</div>`;
+        const core = getTaskCoreText(task.line) || task.line;
+        const chips = [];
+        if (task.completed) chips.push(`<span class="chip">x</span>`);
+        if (task.priority) chips.push(`<span class="chip">(${task.priority})</span>`);
+        if (task.creationDate) chips.push(`<span class="chip">${task.creationDate}</span>`);
+        if (task.completionDate) chips.push(`<span class="chip">done:${task.completionDate}</span>`);
+        chips.push(`<span class="chip">pomos:${task.pomos}</span>`);
+        if (task.today) chips.push(`<span class="today-pill">${t('todayMark')}</span>`);
+        for (const ctx of task.contexts || []) chips.push(`<span class="chip">@${escapeHtml(ctx)}</span>`);
+        for (const prj of task.projects || []) chips.push(`<span class="chip">+${escapeHtml(prj)}</span>`);
+        for (const kv of task.keyValues || []) {
+          if (kv.key === 'pomos' || kv.key === 'today') continue;
+          chips.push(`<span class="chip">${escapeHtml(kv.key)}:${escapeHtml(kv.value)}</span>`);
+        }
+        line.innerHTML = `<div class="task-main">${escapeHtml(core)}</div><div class="task-meta">${chips.join(' ')}</div><div class="task-line">${escapeHtml(task.line)}</div>`;
 
         const right = document.createElement('div'); right.className = 'row';
         const todayBtn = document.createElement('button');
