@@ -34,9 +34,12 @@
     .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.6rem .65rem; display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:start; }
     .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
     .task-main { font-size:1.04rem; font-weight:650; line-height:1.35; word-break:break-word; }
-    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.78rem; word-break:break-word; opacity:.8; }
+    .task-line { display:none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.78rem; word-break:break-word; opacity:.8; margin-top:.2rem; }
     .task-meta { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.35rem; }
-    .chip { border:1px solid var(--border); border-radius:999px; padding:.12rem .5rem; font-size:.73rem; color:var(--muted); }
+    .chip { border:1px solid var(--border); border-radius:999px; padding:.12rem .5rem; font-size:.73rem; color:var(--muted); cursor:pointer; }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .task-item:hover .task-line, .task-item.editing .task-line { display:block; }
+    .edit-box { margin-top:.45rem; display:grid; gap:.4rem; }
     .settings-menu summary { cursor:pointer; font-weight:600; }
     .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:1fr 1fr; gap:.55rem .8rem; align-items:center; }
     .full { grid-column: 1 / -1; }
@@ -180,7 +183,7 @@
         todayTarget:'Heute-Ziel (Pomodoros)', warnBeforeEnd:'Vorwarnung (Sekunden vor Ende)', theme:'Theme', autoSwitch:'Auto-Phasenwechsel', sound:'Sound', desktopNotif:'Desktop-Benachrichtigung',
         newTask:'Neue Aufgabe (todo.txt Kernformat)', add:'Hinzufügen', taskFormatHint:'Unterstützt: x, (A), Datum, Klartext + pomos:N. Filterbar nach Priorität, @context, +project, key:value.', all:'Alle', open:'Offen', done:'Erledigt', todayOnly:'Heute', contextFilter:'@context Filter', projectFilter:'+project Filter', priorityAll:'Alle Prioritäten', priorityNone:'Ohne Priorität', kvFilter:'key:value Filter',
         todayProgress:'Heute-Fortschritt', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'Backup JSON', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren',
-        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', edit:'Bearbeiten', save:'Speichern', cancel:'Abbrechen', todayMark:'Heute',
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
         notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
         pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
@@ -191,7 +194,7 @@
         todayTarget:'Today target (pomodoros)', warnBeforeEnd:'Warning (seconds before end)', theme:'Theme', autoSwitch:'Auto phase switch', sound:'Sound', desktopNotif:'Desktop notifications',
         newTask:'New task (todo.txt core format)', add:'Add', taskFormatHint:'Supports: x, (A), date, plain text + pomos:N. Filter by priority, @context, +project, key:value.', all:'All', open:'Open', done:'Done', todayOnly:'Today', contextFilter:'@context filter', projectFilter:'+project filter', priorityAll:'All priorities', priorityNone:'No priority', kvFilter:'key:value filter',
         todayProgress:'Today progress', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'JSON backup', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Focus search',
-        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', edit:'Edit', save:'Save', cancel:'Cancel', todayMark:'Today',
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
         notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
         pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
@@ -213,6 +216,7 @@
       tasks: [], activeTaskId: null, phase: 'pomodoro', running: false, timerSeconds: 25*60, completedPomodoros: 0, intervalId: null, warnedThisPhase: false,
       todayCount: 0, lastDay: new Date().toISOString().slice(0,10),
       filter: { query:'', status:'all', priority:'all', context:'', project:'', kv:'' },
+      editingTaskId: null,
       settings: { pomodoroMinutes:25, shortBreakMinutes:5, longBreakMinutes:15, longBreakEvery:4, todayTarget:8, warnBeforeEnd:60, autoSwitch:true, soundEnabled:true, desktopNotif:false, theme:'auto', language:'de', breakHintsEnabled:true,
         breakHintsText:'Nacken dehnen: 20 Sekunden pro Seite\nSchultern kreisen: 10 Wiederholungen\nSitzende Wirbelsäulenrotation: 20 Sekunden je Seite\nHandgelenke lockern und 5 tiefe Atemzüge' }
     };
@@ -433,10 +437,26 @@
       });
     }
 
+    function applyChipFilter(token) {
+      if (!token) return;
+      if (token.startsWith('@')) {
+        state.filter.context = state.filter.context ? `${state.filter.context} ${token}` : token;
+      } else if (token.startsWith('+')) {
+        state.filter.project = state.filter.project ? `${state.filter.project} ${token}` : token;
+      } else if (/^\([A-Z]\)$/.test(token)) {
+        state.filter.priority = token[1];
+      } else if (token.includes(':')) {
+        state.filter.kv = state.filter.kv ? `${state.filter.kv} ${token}` : token;
+      }
+      render();
+      saveState();
+    }
+
     function renderTasks() {
       els.taskList.innerHTML = '';
       for (const task of filteredTasks()) {
-        const li = document.createElement('li'); li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
+        const li = document.createElement('li');
+        li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '') + (task.id === state.editingTaskId ? ' editing' : '');
 
         const selectBtn = document.createElement('button');
         selectBtn.textContent = task.id === state.activeTaskId ? t('active') : t('select');
@@ -445,20 +465,29 @@
 
         const line = document.createElement('div');
         const core = getTaskCoreText(task.line) || task.line;
-        const chips = [];
-        if (task.completed) chips.push(`<span class="chip">x</span>`);
-        if (task.priority) chips.push(`<span class="chip">(${task.priority})</span>`);
-        if (task.creationDate) chips.push(`<span class="chip">${task.creationDate}</span>`);
-        if (task.completionDate) chips.push(`<span class="chip">done:${task.completionDate}</span>`);
-        chips.push(`<span class="chip">pomos:${task.pomos}</span>`);
-        if (task.today) chips.push(`<span class="today-pill">${t('todayMark')}</span>`);
-        for (const ctx of task.contexts || []) chips.push(`<span class="chip">@${escapeHtml(ctx)}</span>`);
-        for (const prj of task.projects || []) chips.push(`<span class="chip">+${escapeHtml(prj)}</span>`);
+        line.innerHTML = `<div class="task-main">${escapeHtml(core)}</div><div class="task-meta"></div><div class="task-line">${escapeHtml(task.line)}</div>`;
+        const meta = line.querySelector('.task-meta');
+        const addChip = (label, token, cls='chip') => {
+          const c = document.createElement('button');
+          c.type = 'button';
+          c.className = cls;
+          c.textContent = label;
+          c.title = 'Filter by chip';
+          c.onclick = () => applyChipFilter(token);
+          meta.appendChild(c);
+        };
+        if (task.completed) addChip('x', 'x');
+        if (task.priority) addChip(`(${task.priority})`, `(${task.priority})`);
+        if (task.creationDate) addChip(task.creationDate, `created:${task.creationDate}`);
+        if (task.completionDate) addChip(`done:${task.completionDate}`, `done:${task.completionDate}`);
+        addChip(`pomos:${task.pomos}`, `pomos:${task.pomos}`);
+        if (task.today) addChip(t('todayMark'), 'today:true', 'today-pill');
+        for (const ctx of task.contexts || []) addChip(`@${ctx}`, `@${ctx}`);
+        for (const prj of task.projects || []) addChip(`+${prj}`, `+${prj}`);
         for (const kv of task.keyValues || []) {
           if (kv.key === 'pomos' || kv.key === 'today') continue;
-          chips.push(`<span class="chip">${escapeHtml(kv.key)}:${escapeHtml(kv.value)}</span>`);
+          addChip(`${kv.key}:${kv.value}`, `${kv.key}:${kv.value}`);
         }
-        line.innerHTML = `<div class="task-main">${escapeHtml(core)}</div><div class="task-meta">${chips.join(' ')}</div><div class="task-line">${escapeHtml(task.line)}</div>`;
 
         const right = document.createElement('div'); right.className = 'row';
         const todayBtn = document.createElement('button');
@@ -469,12 +498,56 @@
         toggle.textContent = task.completed ? t('markOpen') : t('markDone'); toggle.className = 'secondary';
         toggle.onclick = () => { task.completed = !task.completed; task.line = task.completed ? `x ${task.line.replace(/^x\s+/, '')}` : task.line.replace(/^x\s+/, ''); render(); saveState(); };
 
+        const edit = document.createElement('button');
+        edit.textContent = t('edit');
+        edit.className = 'secondary';
+        edit.onclick = () => { state.editingTaskId = task.id; render(); };
+
         const remove = document.createElement('button');
         remove.textContent = t('remove'); remove.className = 'warn';
-        remove.onclick = () => { state.tasks = state.tasks.filter(x => x.id !== task.id); if (state.activeTaskId === task.id) state.activeTaskId = null; render(); saveState(); };
+        remove.onclick = () => { state.tasks = state.tasks.filter(x => x.id !== task.id); if (state.activeTaskId === task.id) state.activeTaskId = null; if (state.editingTaskId === task.id) state.editingTaskId = null; render(); saveState(); };
 
-        right.append(todayBtn, toggle, remove);
+        right.append(todayBtn, toggle, edit, remove);
         li.append(selectBtn, line, right);
+
+        if (state.editingTaskId === task.id) {
+          const editBox = document.createElement('div');
+          editBox.className = 'edit-box';
+          const editInput = document.createElement('textarea');
+          editInput.value = task.line;
+          editInput.rows = 3;
+          editInput.style.width = '100%';
+
+          const editActions = document.createElement('div');
+          editActions.className = 'row';
+          const saveBtn = document.createElement('button');
+          saveBtn.textContent = t('save');
+          saveBtn.onclick = () => {
+            const parsed = parseTodoLine(editInput.value.trim());
+            if (!parsed) return;
+            task.line = parsed.line;
+            task.completed = parsed.completed;
+            task.priority = parsed.priority;
+            task.completionDate = parsed.completionDate;
+            task.creationDate = parsed.creationDate;
+            task.contexts = parsed.contexts;
+            task.projects = parsed.projects;
+            task.keyValues = parsed.keyValues;
+            task.pomos = parsed.pomos;
+            task.today = parsed.today;
+            state.editingTaskId = null;
+            render();
+            saveState();
+          };
+          const cancelBtn = document.createElement('button');
+          cancelBtn.className = 'secondary';
+          cancelBtn.textContent = t('cancel');
+          cancelBtn.onclick = () => { state.editingTaskId = null; render(); };
+          editActions.append(saveBtn, cancelBtn);
+          editBox.append(editInput, editActions);
+          line.appendChild(editBox);
+        }
+
         els.taskList.appendChild(li);
       }
 
