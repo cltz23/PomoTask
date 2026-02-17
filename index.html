@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a73e8" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>PomoTask</title>
+  <style>
+    :root {
+      --bg: #f5f7fb; --surface: #ffffff; --text: #1f2937; --muted: #6b7280; --accent: #2563eb;
+      --accent-contrast: #ffffff; --border: #d1d5db; --danger: #dc2626; --ok: #059669; --shadow: 0 10px 20px rgba(0,0,0,.08);
+    }
+    [data-theme="dark"] { --bg:#0f172a; --surface:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#60a5fa; --accent-contrast:#0f172a; --border:#334155; --danger:#f87171; --ok:#34d399; --shadow:0 10px 20px rgba(0,0,0,.35); }
+    [data-theme="zenburn"] { --bg:#3f3f3f; --surface:#4f4f4f; --text:#dcdccc; --muted:#9faf8f; --accent:#8cd0d3; --accent-contrast:#2b2b2b; --border:#5f7f5f; --danger:#cc9393; --ok:#7f9f7f; --shadow:0 10px 20px rgba(0,0,0,.4); }
+    [data-theme="solarized"] { --bg:#fdf6e3; --surface:#eee8d5; --text:#586e75; --muted:#657b83; --accent:#268bd2; --accent-contrast:#fdf6e3; --border:#93a1a1; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(88,110,117,.18); }
+    [data-theme="solarized-dark"] { --bg:#002b36; --surface:#073642; --text:#93a1a1; --muted:#839496; --accent:#2aa198; --accent-contrast:#002b36; --border:#586e75; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(0,0,0,.35); }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); min-height:100vh; }
+    .app { max-width:980px; margin:0 auto; padding:1rem; display:grid; gap:1rem; }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:1rem; box-shadow:var(--shadow); }
+    .stack { display:grid; gap:.75rem; }
+    .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    h1,h2,h3 { margin:0; }
+    input, button, select, textarea { border:1px solid var(--border); border-radius:.5rem; padding:.5rem .6rem; background:var(--surface); color:var(--text); font:inherit; }
+    button { cursor:pointer; background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
+    button.secondary { background:transparent; color:var(--text); border-color:var(--border); }
+    button.warn { background:var(--danger); }
+    .phase { text-align:center; color:var(--muted); }
+    .timer { text-align:center; font-size:clamp(2rem, 8vw, 4rem); font-weight:700; margin:.4rem 0; }
+    .muted { color:var(--muted); font-size:.86rem; }
+    .toast { min-height:1.1rem; color:var(--ok); font-size:.9rem; }
+    .task-list { list-style:none; margin:0; padding:0; display:grid; gap:.4rem; max-height:45vh; overflow:auto; }
+    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:auto 1fr auto; gap:.5rem; align-items:center; }
+    .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
+    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
+    .settings-menu summary { cursor:pointer; font-weight:600; }
+    .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:1fr 1fr; gap:.55rem .8rem; align-items:center; }
+    .full { grid-column: 1 / -1; }
+    .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); border-radius:999px; padding:.15rem .55rem; font-size:.74rem; }
+    .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+    .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .break-hint { border:1px dashed var(--border); border-radius:.55rem; padding:.5rem .65rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel stack">
+      <div class="row" style="justify-content:space-between">
+        <h1 data-i18n="appTitle">PomoTask</h1>
+        <div class="row">
+          <label for="languageSelect" class="muted" data-i18n="language">Sprache</label>
+          <select id="languageSelect">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="updateBanner" class="update-banner">
+        <span id="updateText">Ein App-Update ist verfügbar.</span>
+        <button id="reloadAppBtn" class="secondary">Neu laden</button>
+      </div>
+
+      <div class="phase" id="phaseLabel">Phase: Pomodoro</div>
+      <div id="timerDisplay" class="timer">25:00</div>
+      <div class="row" style="justify-content:center">
+        <button id="startPauseBtn">Start</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+        <button id="skipBtn" class="secondary">Phase überspringen</button>
+      </div>
+      <div class="muted" id="activeTaskLabel">Aktive Task: –</div>
+      <div class="break-hint" id="breakHint" hidden></div>
+      <div class="toast" id="toast"></div>
+      <div class="muted" data-i18n="shortcutsHint">Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren</div>
+
+      <details class="settings-menu">
+        <summary data-i18n="settings">Einstellungen</summary>
+        <div class="settings-grid">
+          <label for="pomodoroMinutes" data-i18n="pomodoroMinutes">Pomodoro (Minuten)</label>
+          <input id="pomodoroMinutes" type="number" min="1" value="25" />
+
+          <label for="shortBreakMinutes" data-i18n="shortBreakMinutes">Kurze Pause (Minuten)</label>
+          <input id="shortBreakMinutes" type="number" min="1" value="5" />
+
+          <label for="longBreakMinutes" data-i18n="longBreakMinutes">Lange Pause (Minuten)</label>
+          <input id="longBreakMinutes" type="number" min="1" value="15" />
+
+          <label for="longBreakEvery" data-i18n="longBreakEvery">Lange Pause alle N Pomodoros</label>
+          <input id="longBreakEvery" type="number" min="2" value="4" />
+
+          <label for="todayTarget" data-i18n="todayTarget">Heute-Ziel (Pomodoros)</label>
+          <input id="todayTarget" type="number" min="1" value="8" />
+
+          <label for="warnBeforeEnd" data-i18n="warnBeforeEnd">Vorwarnung (Sekunden vor Ende)</label>
+          <input id="warnBeforeEnd" type="number" min="0" max="300" value="60" />
+
+          <label for="themeSelect" data-i18n="theme">Theme</label>
+          <select id="themeSelect">
+            <option value="auto">Auto (System)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="zenburn">Zenburn</option>
+            <option value="solarized">Solarized</option>
+            <option value="solarized-dark">Solarized Dark</option>
+          </select>
+
+          <label><input id="breakHintsEnabled" type="checkbox" checked /> <span data-i18n="breakHintsEnabled">Pausen-Hinweise zeigen</span></label>
+          <label for="breakHintsText" data-i18n="breakHintsText">Pausen-Hinweise (je Zeile ein Hinweis)</label>
+          <textarea id="breakHintsText" rows="4" class="full" style="width:100%"></textarea>
+
+          <label><input id="autoSwitch" type="checkbox" checked /> <span data-i18n="autoSwitch">Auto-Phasenwechsel</span></label>
+          <label><input id="soundEnabled" type="checkbox" checked /> <span data-i18n="sound">Sound</span></label>
+          <label><input id="desktopNotif" type="checkbox" /> <span data-i18n="desktopNotif">Desktop-Benachrichtigung</span></label>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel stack">
+      <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
+      <div class="row">
+        <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
+        <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
+      </div>
+      <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
+
+      <div class="row">
+        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
+        <select id="statusFilter">
+          <option value="all" data-i18n="all">Alle</option>
+          <option value="open" data-i18n="open">Offen</option>
+          <option value="done" data-i18n="done">Erledigt</option>
+          <option value="today" data-i18n="todayOnly">Heute</option>
+        </select>
+        <select id="priorityFilter">
+          <option value="all" data-i18n="priorityAll">Alle Prioritäten</option>
+          <option value="none" data-i18n="priorityNone">Ohne Priorität</option>
+          <option value="A">(A)</option>
+          <option value="B">(B)</option>
+          <option value="C">(C)</option>
+          <option value="D">(D)</option>
+          <option value="E">(E)</option>
+        </select>
+      </div>
+      <div class="row">
+        <input id="contextFilter" style="flex:1" placeholder="@context Filter (z. B. @home)" />
+        <input id="projectFilter" style="flex:1" placeholder="+project Filter (z. B. +pomoapp)" />
+        <input id="kvFilter" style="flex:1" placeholder="key:value Filter (z. B. due:2026-02-20)" />
+      </div>
+
+      <div class="row muted">
+        <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
+      </div>
+
+      <ul id="taskList" class="task-list"></ul>
+
+      <details>
+        <summary data-i18n="importExport">Import/Export</summary>
+        <div class="row" style="margin-top:.5rem">
+          <input id="importInput" type="file" accept=".txt,text/plain" />
+          <button id="exportBtn" class="secondary" data-i18n="exportTxt">Export tasks.txt</button>
+          <button id="exportJsonBtn" class="secondary" data-i18n="exportJson">Backup JSON</button>
+          <input id="importJsonInput" type="file" accept=".json,application/json" />
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'pomoTaskStateV3';
+    const THEMES = ['light', 'dark', 'zenburn', 'solarized', 'solarized-dark'];
+    const IS_FILE_PROTOCOL = window.location.protocol === 'file:';
+
+    const I18N = {
+      de: {
+        appTitle:'PomoTask', language:'Sprache', settings:'Einstellungen', pomodoroMinutes:'Pomodoro (Minuten)', shortBreakMinutes:'Kurze Pause (Minuten)', longBreakMinutes:'Lange Pause (Minuten)', longBreakEvery:'Lange Pause alle N Pomodoros',
+        todayTarget:'Heute-Ziel (Pomodoros)', warnBeforeEnd:'Vorwarnung (Sekunden vor Ende)', theme:'Theme', autoSwitch:'Auto-Phasenwechsel', sound:'Sound', desktopNotif:'Desktop-Benachrichtigung',
+        newTask:'Neue Aufgabe (todo.txt Kernformat)', add:'Hinzufügen', taskFormatHint:'Unterstützt: x, (A), Datum, Klartext + pomos:N. Filterbar nach Priorität, @context, +project, key:value.', all:'Alle', open:'Offen', done:'Erledigt', todayOnly:'Heute', contextFilter:'@context Filter', projectFilter:'+project Filter', priorityAll:'Alle Prioritäten', priorityNone:'Ohne Priorität', kvFilter:'key:value Filter',
+        todayProgress:'Heute-Fortschritt', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'Backup JSON', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute',
+        phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
+        notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
+        pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
+        breakHintsEnabled:'Pausen-Hinweise zeigen', breakHintsText:'Pausen-Hinweise (je Zeile ein Hinweis)', breakHintPrefix:'Tipp für die Pause', autoTheme:'Auto (System)'
+      },
+      en: {
+        appTitle:'PomoTask', language:'Language', settings:'Settings', pomodoroMinutes:'Pomodoro (minutes)', shortBreakMinutes:'Short break (minutes)', longBreakMinutes:'Long break (minutes)', longBreakEvery:'Long break every N pomodoros',
+        todayTarget:'Today target (pomodoros)', warnBeforeEnd:'Warning (seconds before end)', theme:'Theme', autoSwitch:'Auto phase switch', sound:'Sound', desktopNotif:'Desktop notifications',
+        newTask:'New task (todo.txt core format)', add:'Add', taskFormatHint:'Supports: x, (A), date, plain text + pomos:N. Filter by priority, @context, +project, key:value.', all:'All', open:'Open', done:'Done', todayOnly:'Today', contextFilter:'@context filter', projectFilter:'+project filter', priorityAll:'All priorities', priorityNone:'No priority', kvFilter:'key:value filter',
+        todayProgress:'Today progress', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'JSON backup', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Focus search',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today',
+        phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
+        notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
+        pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
+        breakHintsEnabled:'Show break hints', breakHintsText:'Break hints (one hint per line)', breakHintPrefix:'Break tip', autoTheme:'Auto (System)'
+      }
+    };
+
+    const els = {
+      phaseLabel: document.getElementById('phaseLabel'), timerDisplay: document.getElementById('timerDisplay'), startPauseBtn: document.getElementById('startPauseBtn'), resetBtn: document.getElementById('resetBtn'), skipBtn: document.getElementById('skipBtn'), activeTaskLabel: document.getElementById('activeTaskLabel'), toast: document.getElementById('toast'),
+      taskInput: document.getElementById('taskInput'), addTaskBtn: document.getElementById('addTaskBtn'), searchInput: document.getElementById('searchInput'), statusFilter: document.getElementById('statusFilter'), priorityFilter: document.getElementById('priorityFilter'), contextFilter: document.getElementById('contextFilter'), projectFilter: document.getElementById('projectFilter'), kvFilter: document.getElementById('kvFilter'), taskList: document.getElementById('taskList'), todayProgress: document.getElementById('todayProgress'),
+      importInput: document.getElementById('importInput'), exportBtn: document.getElementById('exportBtn'), exportJsonBtn: document.getElementById('exportJsonBtn'), importJsonInput: document.getElementById('importJsonInput'),
+      pomodoroMinutes: document.getElementById('pomodoroMinutes'), shortBreakMinutes: document.getElementById('shortBreakMinutes'), longBreakMinutes: document.getElementById('longBreakMinutes'), longBreakEvery: document.getElementById('longBreakEvery'), todayTarget: document.getElementById('todayTarget'), warnBeforeEnd: document.getElementById('warnBeforeEnd'),
+      autoSwitch: document.getElementById('autoSwitch'), soundEnabled: document.getElementById('soundEnabled'), desktopNotif: document.getElementById('desktopNotif'), themeSelect: document.getElementById('themeSelect'), languageSelect: document.getElementById('languageSelect'),
+      breakHintsEnabled: document.getElementById('breakHintsEnabled'), breakHintsText: document.getElementById('breakHintsText'), breakHint: document.getElementById('breakHint'),
+      updateBanner: document.getElementById('updateBanner'), updateText: document.getElementById('updateText'), reloadAppBtn: document.getElementById('reloadAppBtn')
+    };
+
+    const state = {
+      tasks: [], activeTaskId: null, phase: 'pomodoro', running: false, timerSeconds: 25*60, completedPomodoros: 0, intervalId: null, warnedThisPhase: false,
+      todayCount: 0, lastDay: new Date().toISOString().slice(0,10),
+      filter: { query:'', status:'all', priority:'all', context:'', project:'', kv:'' },
+      settings: { pomodoroMinutes:25, shortBreakMinutes:5, longBreakMinutes:15, longBreakEvery:4, todayTarget:8, warnBeforeEnd:60, autoSwitch:true, soundEnabled:true, desktopNotif:false, theme:'auto', language:'de', breakHintsEnabled:true,
+        breakHintsText:'Nacken dehnen: 20 Sekunden pro Seite\nSchultern kreisen: 10 Wiederholungen\nSitzende Wirbelsäulenrotation: 20 Sekunden je Seite\nHandgelenke lockern und 5 tiefe Atemzüge' }
+    };
+
+    let mediaThemeListener = null;
+
+    const t = (key) => (I18N[state.settings.language] || I18N.de)[key] || key;
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+    function getStoredValue(key){ try { return localStorage.getItem(key); } catch { showToast('localStorage unavailable.'); return null; } }
+    function setStoredValue(key, value){ try { localStorage.setItem(key, value); } catch { showToast('Speichern nicht möglich.'); } }
+    function showToast(msg){ els.toast.textContent = msg; setTimeout(() => { if (els.toast.textContent === msg) els.toast.textContent = ''; }, 2600); }
+    function phaseName(phase){ return t(phase); }
+    function formatMMSS(total){ return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; }
+    function getActiveTask(){ return state.tasks.find(tk => tk.id === state.activeTaskId) || null; }
+    function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+    function serializeTasks(){ return state.tasks.map(x => x.line).join('\n'); }
+
+    function parseTodoLine(line) {
+      const raw = line.trim();
+      if (!raw) return null;
+      const pomos = Number((raw.match(/\bpomos:(\d+)\b/i) || [,0])[1]);
+      const todayFlag = /\btoday:true\b/i.test(raw);
+      const contexts = [...raw.matchAll(/(^|\s)@(\S+)/g)].map(m => m[2].toLowerCase());
+      const projects = [...raw.matchAll(/(^|\s)\+(\S+)/g)].map(m => m[2].toLowerCase());
+      const keyValues = [...raw.matchAll(/\b([^\s:]+):([^\s:]+)\b/g)].map(m => ({ key: m[1].toLowerCase(), value: m[2].toLowerCase() }));
+      const completed = /^x\s/.test(raw);
+      const priority = (raw.match(/\(([A-Z])\)/) || [null, null])[1];
+      const dateMatches = [...raw.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].map(m => m[0]);
+      return { id: uid(), line: raw, completed, priority, completionDate: completed ? (dateMatches[0] || null) : null, creationDate: completed ? (dateMatches[1] || null) : (dateMatches[0] || null), pomos, today: todayFlag, contexts, projects, keyValues };
+    }
+
+    function rebuildLine(task) {
+      let base = task.line.replace(/\s*\bpomos:\d+\b/i, '').replace(/\s*\btoday:true\b/i, '').trim();
+      base = `${base} pomos:${task.pomos}`.trim();
+      if (task.today) base += ' today:true';
+      task.line = base;
+    }
+
+    function phaseDurationSeconds(phase) {
+      if (phase === 'pomodoro') return Math.max(1, Number(state.settings.pomodoroMinutes)) * 60;
+      if (phase === 'short') return Math.max(1, Number(state.settings.shortBreakMinutes)) * 60;
+      return Math.max(1, Number(state.settings.longBreakMinutes)) * 60;
+    }
+
+    function updateDocumentTitle() { document.title = `${phaseName(state.phase)} ${formatMMSS(state.timerSeconds)} | PomoTask`; }
+
+    function playTone(freq=880, duration=.2) {
+      if (!state.settings.soundEnabled) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq; gain.gain.value = .0001;
+      osc.connect(gain); gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(.12, now+.01);
+      gain.gain.exponentialRampToValueAtTime(.0001, now+duration);
+      osc.start(now); osc.stop(now + duration + .03); osc.onended = () => ctx.close();
+    }
+
+    function playPhaseSound(phase, warning=false) {
+      if (warning) return playTone(660, .15);
+      if (phase === 'pomodoro') return playTone(900, .26);
+      if (phase === 'short') return playTone(720, .22);
+      return playTone(560, .28);
+    }
+
+    async function maybeNotify(message) {
+      if (!state.settings.desktopNotif) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) return reg.showNotification('PomoTask', { body: message, tag: 'pomotask-phase' });
+      }
+      new Notification('PomoTask', { body: message });
+    }
+
+    function checkDayReset() {
+      const today = new Date().toISOString().slice(0,10);
+      if (today !== state.lastDay) {
+        state.lastDay = today;
+        state.todayCount = 0;
+      }
+    }
+
+    function loadState() {
+      const raw = getStoredValue(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.tasks)) state.tasks = parsed.tasks.map(tk => ({ ...tk, id: tk.id || uid(), today: !!tk.today, contexts: tk.contexts || [], projects: tk.projects || [], keyValues: tk.keyValues || [] }));
+        if (parsed.activeTaskId) state.activeTaskId = parsed.activeTaskId;
+        if (parsed.phase) state.phase = parsed.phase;
+        if (Number.isFinite(parsed.completedPomodoros)) state.completedPomodoros = parsed.completedPomodoros;
+        if (Number.isFinite(parsed.todayCount)) state.todayCount = parsed.todayCount;
+        if (parsed.lastDay) state.lastDay = parsed.lastDay;
+        if (parsed.filter) state.filter = { ...state.filter, ...parsed.filter };
+        if (parsed.settings) state.settings = { ...state.settings, ...parsed.settings };
+      } catch { console.warn('State parse failed'); }
+      checkDayReset();
+    }
+
+    function saveState() {
+      setStoredValue(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, activeTaskId: state.activeTaskId, phase: state.phase, completedPomodoros: state.completedPomodoros, todayCount: state.todayCount, lastDay: state.lastDay, filter: state.filter, settings: state.settings }));
+    }
+
+    function resolveAutoTheme() {
+      const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return dark ? 'solarized-dark' : 'light';
+    }
+
+    function applyTheme(theme, persist=true){
+      const wanted = theme === 'auto' ? resolveAutoTheme() : (THEMES.includes(theme) ? theme : 'light');
+      document.documentElement.setAttribute('data-theme', wanted === 'light' ? '' : wanted);
+      state.settings.theme = theme === 'auto' ? 'auto' : wanted;
+      if (persist) saveState();
+    }
+
+    function setupAutoThemeListener() {
+      if (!window.matchMedia) return;
+      const mm = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaThemeListener = () => { if (state.settings.theme === 'auto') applyTheme('auto', false); };
+      if (mm.addEventListener) mm.addEventListener('change', mediaThemeListener);
+      else if (mm.addListener) mm.addListener(mediaThemeListener);
+    }
+
+    function getBreakHints() {
+      return (state.settings.breakHintsText || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    }
+
+    function showBreakHintIfNeeded() {
+      if (state.phase === 'pomodoro' || !state.settings.breakHintsEnabled) {
+        els.breakHint.hidden = true;
+        els.breakHint.textContent = '';
+        return;
+      }
+      const hints = getBreakHints();
+      if (!hints.length) {
+        els.breakHint.hidden = true;
+        return;
+      }
+      const pick = hints[Math.floor(Math.random() * hints.length)];
+      els.breakHint.textContent = `${t('breakHintPrefix')}: ${pick}`;
+      els.breakHint.hidden = false;
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = state.settings.language;
+      for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+      els.updateText.textContent = t('updateAvailable');
+      els.reloadAppBtn.textContent = t('reload');
+      const autoOpt = els.themeSelect.querySelector('option[value="auto"]');
+      if (autoOpt) autoOpt.textContent = t('autoTheme');
+      els.taskInput.placeholder = state.settings.language === 'de' ? 'z. B. (A) 2026-01-14 Bericht schreiben pomos:0' : 'e.g. (A) 2026-01-14 write report pomos:0';
+      els.searchInput.placeholder = state.settings.language === 'de' ? 'Suche in Aufgaben…' : 'Search tasks…';
+      els.contextFilter.placeholder = state.settings.language === 'de' ? '@context Filter (z. B. @home)' : '@context filter (e.g. @home)';
+      els.projectFilter.placeholder = state.settings.language === 'de' ? '+project Filter (z. B. +pomoapp)' : '+project filter (e.g. +pomoapp)';
+      els.kvFilter.placeholder = state.settings.language === 'de' ? 'key:value Filter (z. B. due:2026-02-20)' : 'key:value filter (e.g. due:2026-02-20)';
+    }
+
+    function filteredTasks() {
+      const q = state.filter.query.trim().toLowerCase();
+      const priority = state.filter.priority;
+      const ctxTokens = state.filter.context.toLowerCase().split(/[\s,]+/).map(x => x.replace(/^@/, '').trim()).filter(Boolean);
+      const projTokens = state.filter.project.toLowerCase().split(/[\s,]+/).map(x => x.replace(/^\+/, '').trim()).filter(Boolean);
+      const kvTokens = state.filter.kv.toLowerCase().split(/[\s,]+/).map(x => x.trim()).filter(Boolean).map(token => token.split(':')).filter(parts => parts.length === 2 && parts[0] && parts[1]);
+      return state.tasks.filter(task => {
+        if (state.filter.status === 'open' && task.completed) return false;
+        if (state.filter.status === 'done' && !task.completed) return false;
+        if (state.filter.status === 'today' && !task.today) return false;
+        if (priority === 'none' && task.priority) return false;
+        if (priority !== 'all' && priority !== 'none' && task.priority !== priority) return false;
+        if (q && !task.line.toLowerCase().includes(q)) return false;
+        if (ctxTokens.length && !ctxTokens.every(token => (task.contexts || []).includes(token))) return false;
+        if (projTokens.length && !projTokens.every(token => (task.projects || []).includes(token))) return false;
+        if (kvTokens.length && !kvTokens.every(([key, value]) => (task.keyValues || []).some(kv => kv.key === key && kv.value === value))) return false;
+        return true;
+      });
+    }
+
+    function renderTasks() {
+      els.taskList.innerHTML = '';
+      for (const task of filteredTasks()) {
+        const li = document.createElement('li'); li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
+
+        const selectBtn = document.createElement('button');
+        selectBtn.textContent = task.id === state.activeTaskId ? t('active') : t('select');
+        selectBtn.className = 'secondary';
+        selectBtn.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
+
+        const line = document.createElement('div');
+        const pill = task.today ? `<span class="today-pill">${t('todayMark')}</span>` : '';
+        line.innerHTML = `<div class="task-line">${escapeHtml(task.line)}</div><div class="muted">pomos: ${task.pomos} ${pill}</div>`;
+
+        const right = document.createElement('div'); right.className = 'row';
+        const todayBtn = document.createElement('button');
+        todayBtn.textContent = t('todayMark'); todayBtn.className = 'secondary';
+        todayBtn.onclick = () => { task.today = !task.today; rebuildLine(task); render(); saveState(); };
+
+        const toggle = document.createElement('button');
+        toggle.textContent = task.completed ? t('markOpen') : t('markDone'); toggle.className = 'secondary';
+        toggle.onclick = () => { task.completed = !task.completed; task.line = task.completed ? `x ${task.line.replace(/^x\s+/, '')}` : task.line.replace(/^x\s+/, ''); render(); saveState(); };
+
+        const remove = document.createElement('button');
+        remove.textContent = t('remove'); remove.className = 'warn';
+        remove.onclick = () => { state.tasks = state.tasks.filter(x => x.id !== task.id); if (state.activeTaskId === task.id) state.activeTaskId = null; render(); saveState(); };
+
+        right.append(todayBtn, toggle, remove);
+        li.append(selectBtn, line, right);
+        els.taskList.appendChild(li);
+      }
+
+      const active = getActiveTask();
+      els.activeTaskLabel.textContent = `${t('activeTask')}: ${active ? active.line : '–'}`;
+      els.todayProgress.textContent = `${state.todayCount}/${state.settings.todayTarget}`;
+    }
+
+    function renderTimer() {
+      els.phaseLabel.textContent = `${t('phase')}: ${phaseName(state.phase)}`;
+      els.timerDisplay.textContent = formatMMSS(state.timerSeconds);
+      els.startPauseBtn.textContent = state.running ? 'Pause' : 'Start';
+      updateDocumentTitle();
+    }
+
+    function renderSettings() {
+      els.pomodoroMinutes.value = state.settings.pomodoroMinutes;
+      els.shortBreakMinutes.value = state.settings.shortBreakMinutes;
+      els.longBreakMinutes.value = state.settings.longBreakMinutes;
+      els.longBreakEvery.value = state.settings.longBreakEvery;
+      els.todayTarget.value = state.settings.todayTarget;
+      els.warnBeforeEnd.value = state.settings.warnBeforeEnd;
+      els.autoSwitch.checked = state.settings.autoSwitch;
+      els.soundEnabled.checked = state.settings.soundEnabled;
+      els.desktopNotif.checked = state.settings.desktopNotif;
+      els.themeSelect.value = state.settings.theme;
+      els.languageSelect.value = state.settings.language;
+      els.breakHintsEnabled.checked = !!state.settings.breakHintsEnabled;
+      els.breakHintsText.value = state.settings.breakHintsText || '';
+      els.searchInput.value = state.filter.query;
+      els.statusFilter.value = state.filter.status;
+      els.priorityFilter.value = state.filter.priority;
+      els.contextFilter.value = state.filter.context;
+      els.projectFilter.value = state.filter.project;
+      els.kvFilter.value = state.filter.kv;
+    }
+
+    function render() { applyTranslations(); renderTasks(); renderTimer(); renderSettings(); showBreakHintIfNeeded(); }
+
+    function stopTimer(){ if (state.intervalId) clearInterval(state.intervalId); state.intervalId = null; state.running = false; renderTimer(); }
+    function resetTimer(){ stopTimer(); state.warnedThisPhase = false; state.timerSeconds = phaseDurationSeconds(state.phase); renderTimer(); }
+
+    function switchPhase() {
+      if (state.phase === 'pomodoro') {
+        const every = Math.max(2, Number(state.settings.longBreakEvery) || 4);
+        state.phase = state.completedPomodoros > 0 && state.completedPomodoros % every === 0 ? 'long' : 'short';
+      } else state.phase = 'pomodoro';
+      state.warnedThisPhase = false;
+      state.timerSeconds = phaseDurationSeconds(state.phase);
+      render(); saveState();
+    }
+
+    function skipPhase(){ stopTimer(); switchPhase(); showToast(t('phaseSkipped')); }
+
+    async function phaseCompleted() {
+      playPhaseSound(state.phase, false);
+      if (state.phase === 'pomodoro') {
+        state.completedPomodoros += 1;
+        state.todayCount += 1;
+        if (state.todayCount >= state.settings.todayTarget) showToast(t('todayDone'));
+        const active = getActiveTask();
+        if (active) { active.pomos += 1; rebuildLine(active); showToast(`${t('pomoDone')} – ${active.pomos}.`); }
+        else showToast(`${t('pomoDone')}. ${t('noActive')}`);
+      }
+
+      await maybeNotify(`${phaseName(state.phase)} done.`);
+
+      if (state.settings.autoSwitch) { switchPhase(); startTimer(); }
+      else { stopTimer(); state.timerSeconds = phaseDurationSeconds(state.phase); render(); saveState(); }
+    }
+
+    function startTimer() {
+      if (state.running) return;
+      state.running = true;
+      renderTimer();
+      state.intervalId = setInterval(async () => {
+        state.timerSeconds -= 1;
+        const warnAt = Math.max(0, Number(state.settings.warnBeforeEnd) || 0);
+        if (!state.warnedThisPhase && warnAt > 0 && state.timerSeconds === warnAt) {
+          state.warnedThisPhase = true;
+          playPhaseSound(state.phase, true);
+          showToast(t('warningSoon'));
+          await maybeNotify(t('warningSoon'));
+        }
+        if (state.timerSeconds <= 0) {
+          clearInterval(state.intervalId); state.intervalId = null; state.running = false;
+          await phaseCompleted();
+        }
+        renderTimer();
+      }, 1000);
+    }
+
+    function handleAddTask() {
+      const line = els.taskInput.value.trim(); if (!line) return;
+      const parsed = parseTodoLine(line); if (!parsed) return;
+      if (!/\bpomos:\d+\b/i.test(parsed.line)) parsed.line = `${parsed.line} pomos:${parsed.pomos}`;
+      parsed.pomos = Number((parsed.line.match(/\bpomos:(\d+)\b/i) || [,0])[1]);
+      state.tasks.unshift(parsed); els.taskInput.value=''; render(); saveState();
+    }
+
+    function exportTasksTxt() {
+      const blob = new Blob([serializeTasks()], { type:'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href = url; a.download = 'tasks.txt'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function exportBackupJson() {
+      const backup = { version: 1, exportedAt: new Date().toISOString(), state };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type:'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href = url; a.download = 'pomotask-backup.json'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    async function importTasksTxt(file) {
+      if (!file) return;
+      const imported = (await file.text()).split(/\r?\n/).map(parseTodoLine).filter(Boolean);
+      state.tasks = imported; state.activeTaskId = imported[0]?.id || null;
+      showToast(`${imported.length} ${t('imported')}`);
+      render(); saveState();
+    }
+
+    async function importBackupJson(file) {
+      if (!file) return;
+      const raw = await file.text();
+      try {
+        const backup = JSON.parse(raw);
+        if (!backup?.state) throw new Error('invalid');
+        const incoming = backup.state;
+        state.tasks = Array.isArray(incoming.tasks) ? incoming.tasks.map(tk => ({ ...tk, id: tk.id || uid() })) : [];
+        state.activeTaskId = incoming.activeTaskId || null;
+        state.phase = incoming.phase || 'pomodoro';
+        state.completedPomodoros = Number(incoming.completedPomodoros || 0);
+        state.todayCount = Number(incoming.todayCount || 0);
+        state.lastDay = incoming.lastDay || new Date().toISOString().slice(0,10);
+        state.filter = { ...state.filter, ...(incoming.filter || {}) };
+        state.settings = { ...state.settings, ...(incoming.settings || {}) };
+        checkDayReset();
+        showToast('Backup importiert.');
+        render(); saveState();
+      } catch {
+        showToast('Ungültige Backup-Datei.');
+      }
+    }
+
+    async function onDesktopNotifToggle(e) {
+      if (IS_FILE_PROTOCOL) { e.target.checked = false; state.settings.desktopNotif = false; showToast(t('notifFile')); saveState(); return; }
+      if (!e.target.checked) { state.settings.desktopNotif = false; saveState(); return; }
+      if (!('Notification' in window)) { e.target.checked = false; showToast(t('notifUnsupported')); return; }
+      const result = await Notification.requestPermission();
+      state.settings.desktopNotif = result === 'granted';
+      e.target.checked = state.settings.desktopNotif;
+      showToast(state.settings.desktopNotif ? t('notifEnabled') : t('notifDenied'));
+      saveState();
+    }
+
+    function bindKeyboardShortcuts() {
+      document.addEventListener('keydown', (e) => {
+        const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+        if (e.key === '/' && !isTyping) { e.preventDefault(); els.searchInput.focus(); return; }
+        if (isTyping) return;
+        if (e.code === 'Space') { e.preventDefault(); state.running ? stopTimer() : startTimer(); return; }
+        if (e.key.toLowerCase() === 'r') { e.preventDefault(); resetTimer(); return; }
+        if (e.key.toLowerCase() === 's') { e.preventDefault(); skipPhase(); }
+      });
+    }
+
+    function bindEvents() {
+      els.addTaskBtn.addEventListener('click', handleAddTask);
+      els.taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleAddTask(); });
+      els.startPauseBtn.addEventListener('click', () => state.running ? stopTimer() : startTimer());
+      els.resetBtn.addEventListener('click', resetTimer);
+      els.skipBtn.addEventListener('click', skipPhase);
+      els.exportBtn.addEventListener('click', exportTasksTxt);
+      els.exportJsonBtn.addEventListener('click', exportBackupJson);
+      els.importInput.addEventListener('change', e => importTasksTxt(e.target.files[0]));
+      els.importJsonInput.addEventListener('change', e => importBackupJson(e.target.files[0]));
+
+      els.searchInput.addEventListener('input', e => { state.filter.query = e.target.value; renderTasks(); saveState(); });
+      els.statusFilter.addEventListener('change', e => { state.filter.status = e.target.value; renderTasks(); saveState(); });
+      els.priorityFilter.addEventListener('change', e => { state.filter.priority = e.target.value; renderTasks(); saveState(); });
+      els.contextFilter.addEventListener('input', e => { state.filter.context = e.target.value; renderTasks(); saveState(); });
+      els.projectFilter.addEventListener('input', e => { state.filter.project = e.target.value; renderTasks(); saveState(); });
+      els.kvFilter.addEventListener('input', e => { state.filter.kv = e.target.value; renderTasks(); saveState(); });
+      els.themeSelect.addEventListener('change', e => { applyTheme(e.target.value); render(); });
+      els.languageSelect.addEventListener('change', e => { state.settings.language = e.target.value; render(); saveState(); });
+      els.breakHintsEnabled.addEventListener('change', e => { state.settings.breakHintsEnabled = e.target.checked; showBreakHintIfNeeded(); saveState(); });
+      els.breakHintsText.addEventListener('change', e => { state.settings.breakHintsText = e.target.value; showBreakHintIfNeeded(); saveState(); });
+
+      els.pomodoroMinutes.addEventListener('change', e => { state.settings.pomodoroMinutes = Math.max(1, Number(e.target.value) || 25); if (state.phase === 'pomodoro') state.timerSeconds = phaseDurationSeconds('pomodoro'); render(); saveState(); });
+      els.shortBreakMinutes.addEventListener('change', e => { state.settings.shortBreakMinutes = Math.max(1, Number(e.target.value) || 5); if (state.phase === 'short') state.timerSeconds = phaseDurationSeconds('short'); render(); saveState(); });
+      els.longBreakMinutes.addEventListener('change', e => { state.settings.longBreakMinutes = Math.max(1, Number(e.target.value) || 15); if (state.phase === 'long') state.timerSeconds = phaseDurationSeconds('long'); render(); saveState(); });
+      els.longBreakEvery.addEventListener('change', e => { state.settings.longBreakEvery = Math.max(2, Number(e.target.value) || 4); saveState(); });
+      els.todayTarget.addEventListener('change', e => { state.settings.todayTarget = Math.max(1, Number(e.target.value) || 8); renderTasks(); saveState(); });
+      els.warnBeforeEnd.addEventListener('change', e => { state.settings.warnBeforeEnd = Math.max(0, Number(e.target.value) || 0); saveState(); });
+      els.autoSwitch.addEventListener('change', e => { state.settings.autoSwitch = e.target.checked; saveState(); });
+      els.soundEnabled.addEventListener('change', e => { state.settings.soundEnabled = e.target.checked; saveState(); });
+      els.desktopNotif.addEventListener('change', onDesktopNotifToggle);
+      els.reloadAppBtn.addEventListener('click', () => window.location.reload());
+
+      bindKeyboardShortcuts();
+    }
+
+    function setupServiceWorkerUX() {
+      if (IS_FILE_PROTOCOL) { showToast(t('swFile')); return; }
+      if (!('serviceWorker' in navigator)) return;
+
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SW_UPDATE_AVAILABLE') els.updateBanner.classList.add('show');
+      });
+
+      navigator.serviceWorker.register('./service-worker.js').then(reg => {
+        if (reg.waiting) els.updateBanner.classList.add('show');
+      }).catch(err => console.warn('Service Worker Registrierung fehlgeschlagen:', err));
+    }
+
+    function init() {
+      loadState();
+      checkDayReset();
+      state.timerSeconds = phaseDurationSeconds(state.phase);
+      bindEvents();
+      setupAutoThemeListener();
+      applyTheme(state.settings.theme);
+      render();
+      setupServiceWorkerUX();
+    }
+
+    init();
+  </script>
+</body>
+</html>
