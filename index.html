@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a73e8" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>PomoTask</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-contrast: #ffffff;
+      --border: #d1d5db;
+      --danger: #dc2626;
+      --ok: #059669;
+      --shadow: 0 10px 20px rgba(0,0,0,.08);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #60a5fa;
+      --accent-contrast: #0f172a;
+      --border: #334155;
+      --danger: #f87171;
+      --ok: #34d399;
+      --shadow: 0 10px 20px rgba(0,0,0,.35);
+    }
+
+    [data-theme="zenburn"] {
+      --bg: #3f3f3f;
+      --surface: #4f4f4f;
+      --text: #dcdccc;
+      --muted: #9faf8f;
+      --accent: #8cd0d3;
+      --accent-contrast: #2b2b2b;
+      --border: #5f7f5f;
+      --danger: #cc9393;
+      --ok: #7f9f7f;
+      --shadow: 0 10px 20px rgba(0,0,0,.4);
+    }
+
+    [data-theme="solarized"] {
+      --bg: #fdf6e3;
+      --surface: #eee8d5;
+      --text: #586e75;
+      --muted: #657b83;
+      --accent: #268bd2;
+      --accent-contrast: #fdf6e3;
+      --border: #93a1a1;
+      --danger: #dc322f;
+      --ok: #859900;
+      --shadow: 0 10px 20px rgba(88, 110, 117, .18);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 1rem;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+    h1,h2,h3 { margin-top: 0; }
+    .row { display: flex; gap: .5rem; flex-wrap: wrap; }
+    input, button, select, textarea {
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: .5rem .6rem;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+    }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--accent-contrast);
+      border-color: transparent;
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    button.warn { background: var(--danger); }
+    .timer {
+      text-align: center;
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 700;
+      letter-spacing: .04em;
+      margin: .4rem 0 1rem;
+    }
+    .phase {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: .7rem;
+    }
+    .task-list {
+      list-style: none;
+      margin: .5rem 0 0;
+      padding: 0;
+      display: grid;
+      gap: .4rem;
+      max-height: 40vh;
+      overflow: auto;
+    }
+    .task-item {
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: .45rem .55rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: .5rem;
+      align-items: center;
+    }
+    .task-line {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .9rem;
+      word-break: break-word;
+    }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .task-item.active {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .5rem .8rem;
+      align-items: center;
+    }
+    .settings-grid label { font-size: .95rem; }
+    .full { grid-column: 1 / -1; }
+    .stack { display: grid; gap: .75rem; }
+    @media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel stack">
+      <h1>PomoTask</h1>
+
+      <div>
+        <h3>Neue Aufgabe (todo.txt Kernformat)</h3>
+        <div class="row">
+          <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
+          <button id="addTaskBtn">Hinzufügen</button>
+        </div>
+        <p class="muted">Unterstützt: <code>x</code>, <code>(A)</code>, Datum, Klartext + <code>pomos:N</code>.</p>
+      </div>
+
+      <div>
+        <h3>Aufgaben</h3>
+        <ul id="taskList" class="task-list"></ul>
+      </div>
+
+      <div>
+        <h3>Import/Export</h3>
+        <div class="row">
+          <input id="importInput" type="file" accept=".txt,text/plain" />
+          <button id="exportBtn" class="secondary">Export tasks.txt</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel stack">
+      <h2>Timer</h2>
+      <div class="phase" id="phaseLabel">Phase: Pomodoro</div>
+      <div id="timerDisplay" class="timer">25:00</div>
+      <div class="row" style="justify-content:center">
+        <button id="startPauseBtn">Start</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+      <div class="muted" id="activeTaskLabel">Aktive Task: –</div>
+
+      <h3>Einstellungen</h3>
+      <div class="settings-grid">
+        <label for="pomodoroMinutes">Pomodoro (Minuten)</label>
+        <input id="pomodoroMinutes" type="number" min="1" value="25" />
+
+        <label for="shortBreakMinutes">Kurze Pause (Minuten)</label>
+        <input id="shortBreakMinutes" type="number" min="1" value="5" />
+
+        <label for="longBreakMinutes">Lange Pause (Minuten)</label>
+        <input id="longBreakMinutes" type="number" min="1" value="15" />
+
+        <label for="longBreakEvery">Lange Pause alle N Pomodoros</label>
+        <input id="longBreakEvery" type="number" min="2" value="4" />
+
+        <label for="themeSelect">Theme</label>
+        <select id="themeSelect">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="zenburn">Zenburn</option>
+          <option value="solarized">Solarized</option>
+        </select>
+
+        <label><input id="autoSwitch" type="checkbox" checked /> Auto-Phasenwechsel</label>
+        <label><input id="soundEnabled" type="checkbox" checked /> Sound</label>
+        <label><input id="desktopNotif" type="checkbox" /> Desktop-Benachrichtigung</label>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'pomoTaskStateV1';
+    const THEMES = ['light', 'dark', 'zenburn', 'solarized'];
+
+    const els = {
+      taskInput: document.getElementById('taskInput'),
+      addTaskBtn: document.getElementById('addTaskBtn'),
+      taskList: document.getElementById('taskList'),
+      importInput: document.getElementById('importInput'),
+      exportBtn: document.getElementById('exportBtn'),
+
+      timerDisplay: document.getElementById('timerDisplay'),
+      phaseLabel: document.getElementById('phaseLabel'),
+      startPauseBtn: document.getElementById('startPauseBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      activeTaskLabel: document.getElementById('activeTaskLabel'),
+
+      pomodoroMinutes: document.getElementById('pomodoroMinutes'),
+      shortBreakMinutes: document.getElementById('shortBreakMinutes'),
+      longBreakMinutes: document.getElementById('longBreakMinutes'),
+      longBreakEvery: document.getElementById('longBreakEvery'),
+      autoSwitch: document.getElementById('autoSwitch'),
+      soundEnabled: document.getElementById('soundEnabled'),
+      desktopNotif: document.getElementById('desktopNotif'),
+      themeSelect: document.getElementById('themeSelect')
+    };
+
+    const state = {
+      tasks: [],
+      activeTaskId: null,
+      phase: 'pomodoro',
+      running: false,
+      timerSeconds: 25 * 60,
+      completedPomodoros: 0,
+      intervalId: null,
+      settings: {
+        pomodoroMinutes: 25,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 15,
+        longBreakEvery: 4,
+        autoSwitch: true,
+        soundEnabled: true,
+        desktopNotif: false,
+        theme: 'light'
+      }
+    };
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    }
+
+    function parseTodoLine(line) {
+      const raw = line.trim();
+      if (!raw) return null;
+
+      let pomos = 0;
+      const pomosMatch = raw.match(/\bpomos:(\d+)\b/i);
+      if (pomosMatch) pomos = Number(pomosMatch[1]);
+
+      const completed = /^x\s/.test(raw);
+      const priorityMatch = raw.match(/\(([A-Z])\)/);
+      const priority = priorityMatch ? priorityMatch[1] : null;
+
+      const dateMatches = [...raw.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].map(m => m[0]);
+      const completionDate = completed ? (dateMatches[0] || null) : null;
+      const creationDate = completed ? (dateMatches[1] || null) : (dateMatches[0] || null);
+
+      return {
+        id: uid(),
+        line: raw,
+        completed,
+        priority,
+        completionDate,
+        creationDate,
+        pomos
+      };
+    }
+
+    function updateLineWithPomos(task) {
+      const base = task.line.replace(/\s*\bpomos:\d+\b/i, '').trim();
+      task.line = `${base} pomos:${task.pomos}`.trim();
+    }
+
+    function serializeTasks() {
+      return state.tasks.map(t => t.line).join('\n');
+    }
+
+    function loadState() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed.tasks)) {
+          state.tasks = parsed.tasks.map(t => ({ ...t, id: t.id || uid() }));
+        }
+        if (parsed.activeTaskId) state.activeTaskId = parsed.activeTaskId;
+        if (parsed.phase) state.phase = parsed.phase;
+        if (Number.isFinite(parsed.completedPomodoros)) state.completedPomodoros = parsed.completedPomodoros;
+        if (parsed.settings) state.settings = { ...state.settings, ...parsed.settings };
+      } catch {
+        console.warn('Konnte gespeicherten Zustand nicht laden.');
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        tasks: state.tasks,
+        activeTaskId: state.activeTaskId,
+        phase: state.phase,
+        completedPomodoros: state.completedPomodoros,
+        settings: state.settings
+      }));
+    }
+
+    function applyTheme(theme) {
+      const t = THEMES.includes(theme) ? theme : 'light';
+      document.documentElement.setAttribute('data-theme', t === 'light' ? '' : t);
+      state.settings.theme = t;
+      saveState();
+    }
+
+    function phaseDurationSeconds(phase) {
+      if (phase === 'pomodoro') return Math.max(1, Number(state.settings.pomodoroMinutes)) * 60;
+      if (phase === 'short') return Math.max(1, Number(state.settings.shortBreakMinutes)) * 60;
+      return Math.max(1, Number(state.settings.longBreakMinutes)) * 60;
+    }
+
+    function phaseName(phase) {
+      if (phase === 'pomodoro') return 'Pomodoro';
+      if (phase === 'short') return 'Kurze Pause';
+      return 'Lange Pause';
+    }
+
+    function formatMMSS(total) {
+      const m = String(Math.floor(total / 60)).padStart(2, '0');
+      const s = String(total % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function getActiveTask() {
+      return state.tasks.find(t => t.id === state.activeTaskId) || null;
+    }
+
+    function renderTasks() {
+      els.taskList.innerHTML = '';
+      for (const task of state.tasks) {
+        const li = document.createElement('li');
+        li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
+
+        const selectBtn = document.createElement('button');
+        selectBtn.textContent = task.id === state.activeTaskId ? 'Aktiv' : 'Wählen';
+        selectBtn.className = 'secondary';
+        selectBtn.onclick = () => {
+          state.activeTaskId = task.id;
+          render();
+          saveState();
+        };
+
+        const line = document.createElement('div');
+        line.innerHTML = `<div class="task-line">${escapeHtml(task.line)}</div><div class="muted">pomos: ${task.pomos}</div>`;
+
+        const right = document.createElement('div');
+        const toggle = document.createElement('button');
+        toggle.textContent = task.completed ? 'Offen' : 'Erledigt';
+        toggle.className = 'secondary';
+        toggle.onclick = () => {
+          task.completed = !task.completed;
+          task.line = task.completed ? `x ${task.line}` : task.line.replace(/^x\s+/, '');
+          render();
+          saveState();
+        };
+
+        const remove = document.createElement('button');
+        remove.textContent = 'Löschen';
+        remove.className = 'warn';
+        remove.onclick = () => {
+          state.tasks = state.tasks.filter(t => t.id !== task.id);
+          if (state.activeTaskId === task.id) state.activeTaskId = null;
+          render();
+          saveState();
+        };
+
+        right.append(toggle, remove);
+        right.className = 'row';
+
+        li.append(selectBtn, line, right);
+        els.taskList.appendChild(li);
+      }
+
+      const active = getActiveTask();
+      els.activeTaskLabel.textContent = `Aktive Task: ${active ? active.line : '–'}`;
+    }
+
+    function renderTimer() {
+      els.phaseLabel.textContent = `Phase: ${phaseName(state.phase)}`;
+      els.timerDisplay.textContent = formatMMSS(state.timerSeconds);
+      els.startPauseBtn.textContent = state.running ? 'Pause' : 'Start';
+    }
+
+    function renderSettings() {
+      els.pomodoroMinutes.value = state.settings.pomodoroMinutes;
+      els.shortBreakMinutes.value = state.settings.shortBreakMinutes;
+      els.longBreakMinutes.value = state.settings.longBreakMinutes;
+      els.longBreakEvery.value = state.settings.longBreakEvery;
+      els.autoSwitch.checked = state.settings.autoSwitch;
+      els.soundEnabled.checked = state.settings.soundEnabled;
+      els.desktopNotif.checked = state.settings.desktopNotif;
+      els.themeSelect.value = state.settings.theme;
+    }
+
+    function render() {
+      renderTasks();
+      renderTimer();
+      renderSettings();
+    }
+
+    function stopTimer() {
+      if (state.intervalId) clearInterval(state.intervalId);
+      state.intervalId = null;
+      state.running = false;
+      renderTimer();
+    }
+
+    function resetTimer() {
+      stopTimer();
+      state.timerSeconds = phaseDurationSeconds(state.phase);
+      renderTimer();
+    }
+
+    function switchPhase() {
+      if (state.phase === 'pomodoro') {
+        const every = Math.max(2, Number(state.settings.longBreakEvery) || 4);
+        state.phase = state.completedPomodoros > 0 && state.completedPomodoros % every === 0 ? 'long' : 'short';
+      } else {
+        state.phase = 'pomodoro';
+      }
+      state.timerSeconds = phaseDurationSeconds(state.phase);
+      render();
+      saveState();
+    }
+
+    function beep() {
+      if (!state.settings.soundEnabled) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.0001;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.15, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      oscillator.start(now);
+      oscillator.stop(now + 0.25);
+      oscillator.onended = () => ctx.close();
+    }
+
+    function maybeNotify(message) {
+      if (!state.settings.desktopNotif) return;
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') {
+        new Notification('PomoTask', { body: message });
+      }
+    }
+
+    function phaseCompleted() {
+      beep();
+      if (state.phase === 'pomodoro') {
+        state.completedPomodoros += 1;
+        const active = getActiveTask();
+        if (active) {
+          active.pomos += 1;
+          updateLineWithPomos(active);
+        }
+      }
+
+      maybeNotify(`${phaseName(state.phase)} abgeschlossen.`);
+
+      if (state.settings.autoSwitch) {
+        switchPhase();
+        startTimer();
+      } else {
+        stopTimer();
+        state.timerSeconds = phaseDurationSeconds(state.phase);
+        render();
+        saveState();
+      }
+    }
+
+    function startTimer() {
+      if (state.running) return;
+      state.running = true;
+      renderTimer();
+
+      state.intervalId = setInterval(() => {
+        state.timerSeconds -= 1;
+        if (state.timerSeconds <= 0) {
+          clearInterval(state.intervalId);
+          state.intervalId = null;
+          state.running = false;
+          phaseCompleted();
+        }
+        renderTimer();
+      }, 1000);
+    }
+
+    function handleAddTask() {
+      const line = els.taskInput.value.trim();
+      if (!line) return;
+      const parsed = parseTodoLine(line);
+      if (!parsed) return;
+      if (!/\bpomos:\d+\b/i.test(parsed.line)) {
+        parsed.line = `${parsed.line} pomos:${parsed.pomos}`;
+      }
+      parsed.pomos = Number((parsed.line.match(/\bpomos:(\d+)\b/i) || [,'0'])[1]);
+      state.tasks.push(parsed);
+      els.taskInput.value = '';
+      render();
+      saveState();
+    }
+
+    function exportTasks() {
+      const data = serializeTasks();
+      const blob = new Blob([data], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tasks.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function handleImport(file) {
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.split(/\r?\n/);
+      const imported = lines.map(parseTodoLine).filter(Boolean);
+      state.tasks = imported;
+      state.activeTaskId = imported[0]?.id || null;
+      render();
+      saveState();
+    }
+
+    async function onDesktopNotifToggle(e) {
+      const wanted = e.target.checked;
+      if (!wanted) {
+        state.settings.desktopNotif = false;
+        saveState();
+        return;
+      }
+      if (!('Notification' in window)) {
+        alert('Notification API wird in diesem Browser nicht unterstützt.');
+        e.target.checked = false;
+        return;
+      }
+      const result = await Notification.requestPermission();
+      state.settings.desktopNotif = result === 'granted';
+      e.target.checked = state.settings.desktopNotif;
+      saveState();
+    }
+
+    function escapeHtml(s) {
+      return s
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function bindEvents() {
+      els.addTaskBtn.addEventListener('click', handleAddTask);
+      els.taskInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') handleAddTask();
+      });
+
+      els.startPauseBtn.addEventListener('click', () => {
+        if (state.running) stopTimer();
+        else startTimer();
+      });
+      els.resetBtn.addEventListener('click', resetTimer);
+
+      els.exportBtn.addEventListener('click', exportTasks);
+      els.importInput.addEventListener('change', e => handleImport(e.target.files[0]));
+
+      els.pomodoroMinutes.addEventListener('change', e => {
+        state.settings.pomodoroMinutes = Math.max(1, Number(e.target.value) || 25);
+        if (state.phase === 'pomodoro') state.timerSeconds = phaseDurationSeconds('pomodoro');
+        render(); saveState();
+      });
+      els.shortBreakMinutes.addEventListener('change', e => {
+        state.settings.shortBreakMinutes = Math.max(1, Number(e.target.value) || 5);
+        if (state.phase === 'short') state.timerSeconds = phaseDurationSeconds('short');
+        render(); saveState();
+      });
+      els.longBreakMinutes.addEventListener('change', e => {
+        state.settings.longBreakMinutes = Math.max(1, Number(e.target.value) || 15);
+        if (state.phase === 'long') state.timerSeconds = phaseDurationSeconds('long');
+        render(); saveState();
+      });
+      els.longBreakEvery.addEventListener('change', e => {
+        state.settings.longBreakEvery = Math.max(2, Number(e.target.value) || 4);
+        saveState();
+      });
+      els.autoSwitch.addEventListener('change', e => {
+        state.settings.autoSwitch = e.target.checked;
+        saveState();
+      });
+      els.soundEnabled.addEventListener('change', e => {
+        state.settings.soundEnabled = e.target.checked;
+        saveState();
+      });
+      els.desktopNotif.addEventListener('change', onDesktopNotifToggle);
+      els.themeSelect.addEventListener('change', e => {
+        applyTheme(e.target.value);
+        render();
+      });
+    }
+
+    function initTimerFromPhase() {
+      state.timerSeconds = phaseDurationSeconds(state.phase);
+    }
+
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js').catch(err => {
+          console.warn('Service Worker Registrierung fehlgeschlagen:', err);
+        });
+      }
+    }
+
+    function init() {
+      loadState();
+      initTimerFromPhase();
+      bindEvents();
+      applyTheme(state.settings.theme);
+      render();
+      registerServiceWorker();
+    }
+
+    init();
+  </script>
+</body>
+</html>
