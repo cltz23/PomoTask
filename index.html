@@ -14,6 +14,7 @@
     [data-theme="dark"] { --bg:#0f172a; --surface:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#60a5fa; --accent-contrast:#0f172a; --border:#334155; --danger:#f87171; --ok:#34d399; --shadow:0 10px 20px rgba(0,0,0,.35); }
     [data-theme="zenburn"] { --bg:#3f3f3f; --surface:#4f4f4f; --text:#dcdccc; --muted:#9faf8f; --accent:#8cd0d3; --accent-contrast:#2b2b2b; --border:#5f7f5f; --danger:#cc9393; --ok:#7f9f7f; --shadow:0 10px 20px rgba(0,0,0,.4); }
     [data-theme="solarized"] { --bg:#fdf6e3; --surface:#eee8d5; --text:#586e75; --muted:#657b83; --accent:#268bd2; --accent-contrast:#fdf6e3; --border:#93a1a1; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(88,110,117,.18); }
+    [data-theme="solarized-dark"] { --bg:#002b36; --surface:#073642; --text:#93a1a1; --muted:#839496; --accent:#2aa198; --accent-contrast:#002b36; --border:#586e75; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(0,0,0,.35); }
     * { box-sizing: border-box; }
     body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); min-height:100vh; }
     .app { max-width:980px; margin:0 auto; padding:1rem; display:grid; gap:1rem; }
@@ -21,7 +22,7 @@
     .stack { display:grid; gap:.75rem; }
     .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
     h1,h2,h3 { margin:0; }
-    input, button, select { border:1px solid var(--border); border-radius:.5rem; padding:.5rem .6rem; background:var(--surface); color:var(--text); font:inherit; }
+    input, button, select, textarea { border:1px solid var(--border); border-radius:.5rem; padding:.5rem .6rem; background:var(--surface); color:var(--text); font:inherit; }
     button { cursor:pointer; background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
     button.secondary { background:transparent; color:var(--text); border-color:var(--border); }
     button.warn { background:var(--danger); }
@@ -35,9 +36,11 @@
     .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
     .settings-menu summary { cursor:pointer; font-weight:600; }
     .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:1fr 1fr; gap:.55rem .8rem; align-items:center; }
+    .full { grid-column: 1 / -1; }
     .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); border-radius:999px; padding:.15rem .55rem; font-size:.74rem; }
     .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
     .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .break-hint { border:1px dashed var(--border); border-radius:.55rem; padding:.5rem .65rem; color:var(--muted); }
   </style>
 </head>
 <body>
@@ -67,6 +70,7 @@
         <button id="skipBtn" class="secondary">Phase überspringen</button>
       </div>
       <div class="muted" id="activeTaskLabel">Aktive Task: –</div>
+      <div class="break-hint" id="breakHint" hidden></div>
       <div class="toast" id="toast"></div>
       <div class="muted" data-i18n="shortcutsHint">Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren</div>
 
@@ -93,11 +97,17 @@
 
           <label for="themeSelect" data-i18n="theme">Theme</label>
           <select id="themeSelect">
+            <option value="auto">Auto (System)</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
             <option value="zenburn">Zenburn</option>
             <option value="solarized">Solarized</option>
+            <option value="solarized-dark">Solarized Dark</option>
           </select>
+
+          <label><input id="breakHintsEnabled" type="checkbox" checked /> <span data-i18n="breakHintsEnabled">Pausen-Hinweise zeigen</span></label>
+          <label for="breakHintsText" data-i18n="breakHintsText">Pausen-Hinweise (je Zeile ein Hinweis)</label>
+          <textarea id="breakHintsText" rows="4" class="full" style="width:100%"></textarea>
 
           <label><input id="autoSwitch" type="checkbox" checked /> <span data-i18n="autoSwitch">Auto-Phasenwechsel</span></label>
           <label><input id="soundEnabled" type="checkbox" checked /> <span data-i18n="sound">Sound</span></label>
@@ -130,21 +140,21 @@
 
       <ul id="taskList" class="task-list"></ul>
 
-      <div>
-        <h3 data-i18n="importExport">Import/Export</h3>
-        <div class="row">
+      <details>
+        <summary data-i18n="importExport">Import/Export</summary>
+        <div class="row" style="margin-top:.5rem">
           <input id="importInput" type="file" accept=".txt,text/plain" />
           <button id="exportBtn" class="secondary" data-i18n="exportTxt">Export tasks.txt</button>
           <button id="exportJsonBtn" class="secondary" data-i18n="exportJson">Backup JSON</button>
           <input id="importJsonInput" type="file" accept=".json,application/json" />
         </div>
-      </div>
+      </details>
     </section>
   </main>
 
   <script>
     const STORAGE_KEY = 'pomoTaskStateV3';
-    const THEMES = ['light', 'dark', 'zenburn', 'solarized'];
+    const THEMES = ['light', 'dark', 'zenburn', 'solarized', 'solarized-dark'];
     const IS_FILE_PROTOCOL = window.location.protocol === 'file:';
 
     const I18N = {
@@ -156,7 +166,8 @@
         phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute',
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
         notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
-        pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!'
+        pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
+        breakHintsEnabled:'Pausen-Hinweise zeigen', breakHintsText:'Pausen-Hinweise (je Zeile ein Hinweis)', breakHintPrefix:'Tipp für die Pause', autoTheme:'Auto (System)'
       },
       en: {
         appTitle:'PomoTask', language:'Language', settings:'Settings', pomodoroMinutes:'Pomodoro (minutes)', shortBreakMinutes:'Short break (minutes)', longBreakMinutes:'Long break (minutes)', longBreakEvery:'Long break every N pomodoros',
@@ -166,7 +177,8 @@
         phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today',
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
         notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
-        pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!'
+        pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
+        breakHintsEnabled:'Show break hints', breakHintsText:'Break hints (one hint per line)', breakHintPrefix:'Break tip', autoTheme:'Auto (System)'
       }
     };
 
@@ -176,6 +188,7 @@
       importInput: document.getElementById('importInput'), exportBtn: document.getElementById('exportBtn'), exportJsonBtn: document.getElementById('exportJsonBtn'), importJsonInput: document.getElementById('importJsonInput'),
       pomodoroMinutes: document.getElementById('pomodoroMinutes'), shortBreakMinutes: document.getElementById('shortBreakMinutes'), longBreakMinutes: document.getElementById('longBreakMinutes'), longBreakEvery: document.getElementById('longBreakEvery'), todayTarget: document.getElementById('todayTarget'), warnBeforeEnd: document.getElementById('warnBeforeEnd'),
       autoSwitch: document.getElementById('autoSwitch'), soundEnabled: document.getElementById('soundEnabled'), desktopNotif: document.getElementById('desktopNotif'), themeSelect: document.getElementById('themeSelect'), languageSelect: document.getElementById('languageSelect'),
+      breakHintsEnabled: document.getElementById('breakHintsEnabled'), breakHintsText: document.getElementById('breakHintsText'), breakHint: document.getElementById('breakHint'),
       updateBanner: document.getElementById('updateBanner'), updateText: document.getElementById('updateText'), reloadAppBtn: document.getElementById('reloadAppBtn')
     };
 
@@ -183,8 +196,11 @@
       tasks: [], activeTaskId: null, phase: 'pomodoro', running: false, timerSeconds: 25*60, completedPomodoros: 0, intervalId: null, warnedThisPhase: false,
       todayCount: 0, lastDay: new Date().toISOString().slice(0,10),
       filter: { query:'', status:'all' },
-      settings: { pomodoroMinutes:25, shortBreakMinutes:5, longBreakMinutes:15, longBreakEvery:4, todayTarget:8, warnBeforeEnd:60, autoSwitch:true, soundEnabled:true, desktopNotif:false, theme:'light', language:'de' }
+      settings: { pomodoroMinutes:25, shortBreakMinutes:5, longBreakMinutes:15, longBreakEvery:4, todayTarget:8, warnBeforeEnd:60, autoSwitch:true, soundEnabled:true, desktopNotif:false, theme:'auto', language:'de', breakHintsEnabled:true,
+        breakHintsText:'Nacken dehnen: 20 Sekunden pro Seite\nSchultern kreisen: 10 Wiederholungen\nSitzende Wirbelsäulenrotation: 20 Sekunden je Seite\nHandgelenke lockern und 5 tiefe Atemzüge' }
     };
+
+    let mediaThemeListener = null;
 
     const t = (key) => (I18N[state.settings.language] || I18N.de)[key] || key;
     const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -282,13 +298,53 @@
       setStoredValue(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, activeTaskId: state.activeTaskId, phase: state.phase, completedPomodoros: state.completedPomodoros, todayCount: state.todayCount, lastDay: state.lastDay, filter: state.filter, settings: state.settings }));
     }
 
-    function applyTheme(theme){ const tTheme = THEMES.includes(theme) ? theme : 'light'; document.documentElement.setAttribute('data-theme', tTheme === 'light' ? '' : tTheme); state.settings.theme = tTheme; saveState(); }
+    function resolveAutoTheme() {
+      const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return dark ? 'solarized-dark' : 'light';
+    }
+
+    function applyTheme(theme, persist=true){
+      const wanted = theme === 'auto' ? resolveAutoTheme() : (THEMES.includes(theme) ? theme : 'light');
+      document.documentElement.setAttribute('data-theme', wanted === 'light' ? '' : wanted);
+      state.settings.theme = theme === 'auto' ? 'auto' : wanted;
+      if (persist) saveState();
+    }
+
+    function setupAutoThemeListener() {
+      if (!window.matchMedia) return;
+      const mm = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaThemeListener = () => { if (state.settings.theme === 'auto') applyTheme('auto', false); };
+      if (mm.addEventListener) mm.addEventListener('change', mediaThemeListener);
+      else if (mm.addListener) mm.addListener(mediaThemeListener);
+    }
+
+    function getBreakHints() {
+      return (state.settings.breakHintsText || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    }
+
+    function showBreakHintIfNeeded() {
+      if (state.phase === 'pomodoro' || !state.settings.breakHintsEnabled) {
+        els.breakHint.hidden = true;
+        els.breakHint.textContent = '';
+        return;
+      }
+      const hints = getBreakHints();
+      if (!hints.length) {
+        els.breakHint.hidden = true;
+        return;
+      }
+      const pick = hints[Math.floor(Math.random() * hints.length)];
+      els.breakHint.textContent = `${t('breakHintPrefix')}: ${pick}`;
+      els.breakHint.hidden = false;
+    }
 
     function applyTranslations() {
       document.documentElement.lang = state.settings.language;
       for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
       els.updateText.textContent = t('updateAvailable');
       els.reloadAppBtn.textContent = t('reload');
+      const autoOpt = els.themeSelect.querySelector('option[value="auto"]');
+      if (autoOpt) autoOpt.textContent = t('autoTheme');
       els.taskInput.placeholder = state.settings.language === 'de' ? 'z. B. (A) 2026-01-14 Bericht schreiben pomos:0' : 'e.g. (A) 2026-01-14 write report pomos:0';
       els.searchInput.placeholder = state.settings.language === 'de' ? 'Suche in Aufgaben…' : 'Search tasks…';
     }
@@ -360,11 +416,13 @@
       els.desktopNotif.checked = state.settings.desktopNotif;
       els.themeSelect.value = state.settings.theme;
       els.languageSelect.value = state.settings.language;
+      els.breakHintsEnabled.checked = !!state.settings.breakHintsEnabled;
+      els.breakHintsText.value = state.settings.breakHintsText || '';
       els.searchInput.value = state.filter.query;
       els.statusFilter.value = state.filter.status;
     }
 
-    function render() { applyTranslations(); renderTasks(); renderTimer(); renderSettings(); }
+    function render() { applyTranslations(); renderTasks(); renderTimer(); renderSettings(); showBreakHintIfNeeded(); }
 
     function stopTimer(){ if (state.intervalId) clearInterval(state.intervalId); state.intervalId = null; state.running = false; renderTimer(); }
     function resetTimer(){ stopTimer(); state.warnedThisPhase = false; state.timerSeconds = phaseDurationSeconds(state.phase); renderTimer(); }
@@ -508,6 +566,8 @@
       els.statusFilter.addEventListener('change', e => { state.filter.status = e.target.value; renderTasks(); saveState(); });
       els.themeSelect.addEventListener('change', e => { applyTheme(e.target.value); render(); });
       els.languageSelect.addEventListener('change', e => { state.settings.language = e.target.value; render(); saveState(); });
+      els.breakHintsEnabled.addEventListener('change', e => { state.settings.breakHintsEnabled = e.target.checked; showBreakHintIfNeeded(); saveState(); });
+      els.breakHintsText.addEventListener('change', e => { state.settings.breakHintsText = e.target.value; showBreakHintIfNeeded(); saveState(); });
 
       els.pomodoroMinutes.addEventListener('change', e => { state.settings.pomodoroMinutes = Math.max(1, Number(e.target.value) || 25); if (state.phase === 'pomodoro') state.timerSeconds = phaseDurationSeconds('pomodoro'); render(); saveState(); });
       els.shortBreakMinutes.addEventListener('change', e => { state.settings.shortBreakMinutes = Math.max(1, Number(e.target.value) || 5); if (state.phase === 'short') state.timerSeconds = phaseDurationSeconds('short'); render(); saveState(); });
@@ -541,6 +601,7 @@
       checkDayReset();
       state.timerSeconds = phaseDurationSeconds(state.phase);
       bindEvents();
+      setupAutoThemeListener();
       applyTheme(state.settings.theme);
       render();
       setupServiceWorkerUX();
