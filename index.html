@@ -137,6 +137,7 @@
   <script>
     const STORAGE_KEY = 'pomoTaskStateV2';
     const THEMES = ['light', 'dark', 'zenburn', 'solarized'];
+    const IS_FILE_PROTOCOL = window.location.protocol === 'file:';
 
     const els = {
       taskInput: document.getElementById('taskInput'), addTaskBtn: document.getElementById('addTaskBtn'), taskList: document.getElementById('taskList'),
@@ -180,8 +181,25 @@
       setTimeout(() => { if (els.toast.textContent === msg) els.toast.textContent = ''; }, 2600);
     }
 
+    function getStoredValue(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        showToast('localStorage ist in dieser Umgebung nicht verfügbar.');
+        return null;
+      }
+    }
+
+    function setStoredValue(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        showToast('Speichern nicht möglich (localStorage blockiert).');
+      }
+    }
+
     function loadState() {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = getStoredValue(STORAGE_KEY);
       if (!stored) return;
       try {
         const parsed = JSON.parse(stored);
@@ -195,7 +213,7 @@
     }
 
     function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, activeTaskId: state.activeTaskId, phase: state.phase, completedPomodoros: state.completedPomodoros, settings: state.settings, filter: state.filter }));
+      setStoredValue(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, activeTaskId: state.activeTaskId, phase: state.phase, completedPomodoros: state.completedPomodoros, settings: state.settings, filter: state.filter }));
     }
 
     function applyTheme(theme) {
@@ -428,6 +446,13 @@
     }
 
     async function onDesktopNotifToggle(e) {
+      if (IS_FILE_PROTOCOL) {
+        e.target.checked = false;
+        state.settings.desktopNotif = false;
+        showToast('Desktop-Benachrichtigungen benötigen http(s), nicht file://.');
+        saveState();
+        return;
+      }
       if (!e.target.checked) {
         state.settings.desktopNotif = false;
         saveState();
@@ -472,6 +497,10 @@
     }
 
     function registerServiceWorker() {
+      if (IS_FILE_PROTOCOL) {
+        showToast('file:// Modus: Service Worker/Offline-Cache im Browser meist nicht verfügbar.');
+        return;
+      }
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('Service Worker Registrierung fehlgeschlagen:', err));
     }
 
