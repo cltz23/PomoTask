@@ -89,22 +89,15 @@
     .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
     .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
     .break-hint { border:1px dashed var(--border); border-radius:.55rem; padding:.5rem .65rem; color:var(--muted); }
-    .mobile-collapsible summary { cursor:pointer; font-weight:600; }
-
-    @media (max-width: 720px) {
-      .app { padding:.7rem; gap:.8rem; }
-      .panel { padding:.85rem; }
-      .focus-panel { padding:1rem; }
-      .mobile-collapsible { border:1px solid var(--border); border-radius:.55rem; padding:.2rem .6rem; }
-      .mobile-collapsible > summary { list-style:inside; }
-      .mobile-collapsible > :not(summary) { margin-top:.55rem; }
-    }
-
-    @media (min-width: 721px) {
-      .mobile-collapsible > summary { display:none; }
-      .mobile-collapsible { border:none; padding:0; }
-      .mobile-collapsible:not([open]) > :not(summary) { display:block; margin-top:0; }
-    }
+    .filters-top-row { display:flex; gap:.5rem; align-items:center; }
+    .filters-top-row input { flex:1; }
+    .advanced-filters { margin-top:.15rem; }
+    .advanced-filters .row { margin-top:.5rem; }
+    .advanced-filters select,
+    .advanced-filters input { min-width: 11rem; flex:1; }
+    .active-filters { display:flex; gap:.4rem; overflow-x:auto; white-space:nowrap; padding-bottom:.2rem; }
+    .active-filters:empty { display:none; }
+    .filter-pill { border:1px solid var(--border); border-radius:999px; padding:.2rem .6rem; font-size:.8rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
   </style>
 </head>
 <body>
@@ -217,15 +210,34 @@
       </div>
       <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
 
-      <div class="row">
-        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
-        <div id="statusFilterChips" class="filter-chips" role="group" aria-label="Task filter">
-          <button type="button" class="filter-chip" data-filter="all" data-i18n="all" aria-pressed="false">Alle</button>
-          <button type="button" class="filter-chip" data-filter="open" data-i18n="open" aria-pressed="false">Offen</button>
-          <button type="button" class="filter-chip" data-filter="done" data-i18n="done" aria-pressed="false">Erledigt</button>
-          <button type="button" class="filter-chip" data-filter="today" data-i18n="todayOnly" aria-pressed="false">Heute</button>
-        </div>
+      <div class="filters-top-row">
+        <input id="searchInput" placeholder="Suche…" />
+        <button id="resetFiltersBtn" class="secondary" data-i18n="resetFilters">Filter zurücksetzen</button>
       </div>
+
+      <div id="activeFilters" class="active-filters" aria-live="polite"></div>
+
+      <details class="advanced-filters" id="advancedFiltersPanel">
+        <summary data-i18n="advancedFilters">Erweiterte Filter</summary>
+        <div class="row">
+          <select id="statusFilter">
+            <option value="all" data-i18n="all">Alle</option>
+            <option value="open" data-i18n="open">Offen</option>
+            <option value="done" data-i18n="done">Erledigt</option>
+            <option value="today" data-i18n="todayOnly">Heute</option>
+          </select>
+          <select id="priorityFilter">
+            <option value="all" data-i18n="priorityAll">Priorität</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="none" data-i18n="priorityNone">Keine Priorität</option>
+          </select>
+          <input id="contextFilter" placeholder="@context" />
+          <input id="projectFilter" placeholder="+project" />
+          <input id="kvFilter" placeholder="key:value" />
+        </div>
+      </details>
 
       <div class="row muted">
         <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
@@ -255,6 +267,8 @@
         appTitle:'PomoTask', language:'Sprache', settings:'Einstellungen', pomodoroMinutes:'Pomodoro (Minuten)', shortBreakMinutes:'Kurze Pause (Minuten)', longBreakMinutes:'Lange Pause (Minuten)', longBreakEvery:'Lange Pause alle N Pomodoros',
         todayTarget:'Heute-Ziel (Pomodoros)', warnBeforeEnd:'Vorwarnung (Sekunden vor Ende)', theme:'Theme', autoSwitch:'Auto-Phasenwechsel', sound:'Sound', desktopNotif:'Desktop-Benachrichtigung',
         newTask:'Neue Aufgabe (todo.txt Kernformat)', add:'Hinzufügen', taskFormatHint:'Unterstützt: x, (A), Datum, Klartext + pomos:N.', all:'Alle', open:'Offen', done:'Erledigt', todayOnly:'Heute',
+        resetFilters:'Filter zurücksetzen', advancedFilters:'Erweiterte Filter', priorityAll:'Priorität', priorityNone:'Keine Priorität',
+        statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Suche…',
         todayProgress:'Heute-Fortschritt', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'Backup JSON', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren',
         phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute', more:'Mehr', created:'Erstellt', doneAt:'Erledigt am', technicalMeta:'Technische Metadaten',
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
@@ -266,6 +280,8 @@
         appTitle:'PomoTask', language:'Language', settings:'Settings', pomodoroMinutes:'Pomodoro (minutes)', shortBreakMinutes:'Short break (minutes)', longBreakMinutes:'Long break (minutes)', longBreakEvery:'Long break every N pomodoros',
         todayTarget:'Today target (pomodoros)', warnBeforeEnd:'Warning (seconds before end)', theme:'Theme', autoSwitch:'Auto phase switch', sound:'Sound', desktopNotif:'Desktop notifications',
         newTask:'New task (todo.txt core format)', add:'Add', taskFormatHint:'Supports: x, (A), date, plain text + pomos:N.', all:'All', open:'Open', done:'Done', todayOnly:'Today',
+        resetFilters:'Reset filters', advancedFilters:'Advanced filters', priorityAll:'Priority', priorityNone:'No priority',
+        statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Search…',
         todayProgress:'Today progress', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'JSON backup', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Focus search',
         phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today', more:'More', created:'Created', doneAt:'Completed', technicalMeta:'Technical metadata',
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
@@ -277,7 +293,8 @@
 
     const els = {
       phaseLabel: document.getElementById('phaseLabel'), timerDisplay: document.getElementById('timerDisplay'), startPauseBtn: document.getElementById('startPauseBtn'), resetBtn: document.getElementById('resetBtn'), skipBtn: document.getElementById('skipBtn'), activeTaskLabel: document.getElementById('activeTaskLabel'), toast: document.getElementById('toast'),
-      taskInput: document.getElementById('taskInput'), addTaskBtn: document.getElementById('addTaskBtn'), searchInput: document.getElementById('searchInput'), statusFilterChips: document.getElementById('statusFilterChips'), taskList: document.getElementById('taskList'), todayProgress: document.getElementById('todayProgress'),
+      taskInput: document.getElementById('taskInput'), addTaskBtn: document.getElementById('addTaskBtn'), searchInput: document.getElementById('searchInput'), resetFiltersBtn: document.getElementById('resetFiltersBtn'), activeFilters: document.getElementById('activeFilters'),
+      statusFilter: document.getElementById('statusFilter'), priorityFilter: document.getElementById('priorityFilter'), contextFilter: document.getElementById('contextFilter'), projectFilter: document.getElementById('projectFilter'), kvFilter: document.getElementById('kvFilter'), taskList: document.getElementById('taskList'), todayProgress: document.getElementById('todayProgress'),
       importInput: document.getElementById('importInput'), exportBtn: document.getElementById('exportBtn'), exportJsonBtn: document.getElementById('exportJsonBtn'), importJsonInput: document.getElementById('importJsonInput'),
       pomodoroMinutes: document.getElementById('pomodoroMinutes'), shortBreakMinutes: document.getElementById('shortBreakMinutes'), longBreakMinutes: document.getElementById('longBreakMinutes'), longBreakEvery: document.getElementById('longBreakEvery'), todayTarget: document.getElementById('todayTarget'), warnBeforeEnd: document.getElementById('warnBeforeEnd'),
       autoSwitch: document.getElementById('autoSwitch'), soundEnabled: document.getElementById('soundEnabled'), desktopNotif: document.getElementById('desktopNotif'), themeSelect: document.getElementById('themeSelect'), languageSelect: document.getElementById('languageSelect'),
@@ -288,7 +305,7 @@
     const state = {
       tasks: [], activeTaskId: null, phase: 'pomodoro', running: false, timerSeconds: 25*60, completedPomodoros: 0, intervalId: null, warnedThisPhase: false,
       todayCount: 0, lastDay: new Date().toISOString().slice(0,10),
-      filter: { query:'', status:'all' },
+      filter: { query:'', status:'all', priority:'all', context:'', project:'', kv:'' },
       settings: { pomodoroMinutes:25, shortBreakMinutes:5, longBreakMinutes:15, longBreakEvery:4, todayTarget:8, warnBeforeEnd:60, autoSwitch:true, soundEnabled:true, desktopNotif:false, theme:'auto', language:'de', breakHintsEnabled:true,
         breakHintsText:'Nacken dehnen: 20 Sekunden pro Seite\nSchultern kreisen: 10 Wiederholungen\nSitzende Wirbelsäulenrotation: 20 Sekunden je Seite\nHandgelenke lockern und 5 tiefe Atemzüge' }
     };
@@ -391,6 +408,14 @@
       setStoredValue(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, activeTaskId: state.activeTaskId, phase: state.phase, completedPomodoros: state.completedPomodoros, todayCount: state.todayCount, lastDay: state.lastDay, filter: state.filter, settings: state.settings }));
     }
 
+    const saveStateDebounced = (() => {
+      let timer = null;
+      return () => {
+        clearTimeout(timer);
+        timer = setTimeout(saveState, 180);
+      };
+    })();
+
     function resolveAutoTheme() {
       const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       return dark ? 'solarized-dark' : 'light';
@@ -439,7 +464,25 @@
       const autoOpt = els.themeSelect.querySelector('option[value="auto"]');
       if (autoOpt) autoOpt.textContent = t('autoTheme');
       els.taskInput.placeholder = state.settings.language === 'de' ? 'z. B. (A) 2026-01-14 Bericht schreiben pomos:0' : 'e.g. (A) 2026-01-14 write report pomos:0';
-      els.searchInput.placeholder = state.settings.language === 'de' ? 'Suche in Aufgaben…' : 'Search tasks…';
+      els.searchInput.placeholder = t('searchShort');
+      els.statusFilter.setAttribute('aria-label', t('statusShort'));
+      els.priorityFilter.setAttribute('aria-label', t('priorityAll'));
+      els.contextFilter.setAttribute('aria-label', t('contextShort'));
+      els.projectFilter.setAttribute('aria-label', t('projectShort'));
+      els.kvFilter.setAttribute('aria-label', t('kvShort'));
+      els.contextFilter.placeholder = t('contextShort');
+      els.projectFilter.placeholder = t('projectShort');
+      els.kvFilter.placeholder = t('kvShort');
+    }
+
+    function taskMatchesAdvancedFilters(task) {
+      const line = task.line.toLowerCase();
+      if (state.filter.priority === 'none' && task.priority) return false;
+      if (state.filter.priority !== 'all' && state.filter.priority !== 'none' && task.priority !== state.filter.priority) return false;
+      if (state.filter.context && !line.includes(`@${state.filter.context.toLowerCase()}`)) return false;
+      if (state.filter.project && !line.includes(`+${state.filter.project.toLowerCase()}`)) return false;
+      if (state.filter.kv && !line.includes(state.filter.kv.toLowerCase())) return false;
+      return true;
     }
 
     function filteredTasks() {
@@ -449,8 +492,20 @@
         if (state.filter.status === 'done' && !task.completed) return false;
         if (state.filter.status === 'today' && !task.today) return false;
         if (q && !task.line.toLowerCase().includes(q)) return false;
+        if (!taskMatchesAdvancedFilters(task)) return false;
         return true;
       });
+    }
+
+    function renderActiveFilters() {
+      const chips = [];
+      if (state.filter.query.trim()) chips.push(`${t('searchShort')} ${state.filter.query.trim()}`);
+      if (state.filter.status !== 'all') chips.push(`${t('statusShort')}: ${t(state.filter.status === 'today' ? 'todayOnly' : state.filter.status)}`);
+      if (state.filter.priority !== 'all') chips.push(`${t('priorityAll')}: ${state.filter.priority === 'none' ? t('priorityNone') : state.filter.priority}`);
+      if (state.filter.context.trim()) chips.push(`${t('contextShort')}: @${state.filter.context.trim()}`);
+      if (state.filter.project.trim()) chips.push(`${t('projectShort')}: +${state.filter.project.trim()}`);
+      if (state.filter.kv.trim()) chips.push(`${t('kvShort')}: ${state.filter.kv.trim()}`);
+      els.activeFilters.innerHTML = chips.map(c => `<span class="filter-pill">${escapeHtml(c)}</span>`).join('');
     }
 
     function renderTasks() {
@@ -548,14 +603,22 @@
       els.breakHintsEnabled.checked = !!state.settings.breakHintsEnabled;
       els.breakHintsText.value = state.settings.breakHintsText || '';
       els.searchInput.value = state.filter.query;
-      for (const chip of els.statusFilterChips.querySelectorAll('[data-filter]')) {
-        const active = chip.dataset.filter === state.filter.status;
-        chip.classList.toggle('active', active);
-        chip.setAttribute('aria-pressed', String(active));
-      }
+      els.statusFilter.value = state.filter.status;
+      els.priorityFilter.value = state.filter.priority;
+      els.contextFilter.value = state.filter.context;
+      els.projectFilter.value = state.filter.project;
+      els.kvFilter.value = state.filter.kv;
     }
 
-    function render() { applyTranslations(); renderTasks(); renderTimer(); renderSettings(); showBreakHintIfNeeded(); }
+    function renderFilteredView() { renderTasks(); renderActiveFilters(); }
+    function render() { applyTranslations(); renderFilteredView(); renderTimer(); renderSettings(); showBreakHintIfNeeded(); }
+
+    function resetFilters() {
+      state.filter = { query:'', status:'all', priority:'all', context:'', project:'', kv:'' };
+      renderSettings();
+      renderFilteredView();
+      saveStateDebounced();
+    }
 
     function stopTimer(){ if (state.intervalId) clearInterval(state.intervalId); state.intervalId = null; state.running = false; renderTimer(); }
     function resetTimer(){ stopTimer(); state.warnedThisPhase = false; state.timerSeconds = phaseDurationSeconds(state.phase); renderTimer(); }
@@ -695,15 +758,13 @@
       els.importInput.addEventListener('change', e => importTasksTxt(e.target.files[0]));
       els.importJsonInput.addEventListener('change', e => importBackupJson(e.target.files[0]));
 
-      els.searchInput.addEventListener('input', e => { state.filter.query = e.target.value; renderTasks(); saveState(); });
-      els.statusFilterChips.addEventListener('click', e => {
-        const chip = e.target.closest('[data-filter]');
-        if (!chip) return;
-        state.filter.status = chip.dataset.filter;
-        renderTasks();
-        renderSettings();
-        saveState();
-      });
+      els.searchInput.addEventListener('input', e => { state.filter.query = e.target.value; renderFilteredView(); saveStateDebounced(); });
+      els.statusFilter.addEventListener('change', e => { state.filter.status = e.target.value; renderFilteredView(); saveStateDebounced(); });
+      els.priorityFilter.addEventListener('change', e => { state.filter.priority = e.target.value; renderFilteredView(); saveStateDebounced(); });
+      els.contextFilter.addEventListener('input', e => { state.filter.context = e.target.value.replace(/^@+/, '').trimStart(); renderFilteredView(); saveStateDebounced(); });
+      els.projectFilter.addEventListener('input', e => { state.filter.project = e.target.value.replace(/^\++/, '').trimStart(); renderFilteredView(); saveStateDebounced(); });
+      els.kvFilter.addEventListener('input', e => { state.filter.kv = e.target.value.trimStart(); renderFilteredView(); saveStateDebounced(); });
+      els.resetFiltersBtn.addEventListener('click', resetFilters);
       els.themeSelect.addEventListener('change', e => { applyTheme(e.target.value); render(); });
       els.languageSelect.addEventListener('change', e => { state.settings.language = e.target.value; render(); saveState(); });
       els.breakHintsEnabled.addEventListener('change', e => { state.settings.breakHintsEnabled = e.target.checked; showBreakHintIfNeeded(); saveState(); });
