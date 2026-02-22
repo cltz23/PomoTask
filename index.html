@@ -10,6 +10,10 @@
     :root {
       --bg: #f5f7fb; --surface: #ffffff; --text: #1f2937; --muted: #6b7280; --accent: #2563eb;
       --accent-contrast: #ffffff; --border: #d1d5db; --danger: #dc2626; --ok: #059669; --shadow: 0 10px 20px rgba(0,0,0,.08);
+      --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-5: 1.25rem;
+      --font-xs: .75rem; --font-sm: .875rem; --font-md: 1rem; --font-lg: 1.125rem;
+      --radius-sm: .5rem; --radius-md: .75rem; --radius-lg: 999px;
+      --line-height-copy: 1.4;
     }
     [data-theme="dark"] { --bg:#0f172a; --surface:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#60a5fa; --accent-contrast:#0f172a; --border:#334155; --danger:#f87171; --ok:#34d399; --shadow:0 10px 20px rgba(0,0,0,.35); }
     [data-theme="zenburn"] { --bg:#3f3f3f; --surface:#4f4f4f; --text:#dcdccc; --muted:#9faf8f; --accent:#8cd0d3; --accent-contrast:#2b2b2b; --border:#5f7f5f; --danger:#cc9393; --ok:#7f9f7f; --shadow:0 10px 20px rgba(0,0,0,.4); }
@@ -17,30 +21,33 @@
     [data-theme="solarized-dark"] { --bg:#002b36; --surface:#073642; --text:#93a1a1; --muted:#839496; --accent:#2aa198; --accent-contrast:#002b36; --border:#586e75; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(0,0,0,.35); }
     * { box-sizing: border-box; }
     body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); min-height:100vh; }
-    .app { max-width:980px; margin:0 auto; padding:1rem; display:grid; gap:1rem; }
-    .panel { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:1rem; box-shadow:var(--shadow); }
-    .stack { display:grid; gap:.75rem; }
-    .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    .app { max-width:980px; margin:0 auto; padding:var(--space-4); display:grid; gap:var(--space-4); }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:var(--shadow); }
+    .stack { display:grid; gap:var(--space-3); }
+    .row { display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:center; }
     h1,h2,h3 { margin:0; }
-    input, button, select, textarea { border:1px solid var(--border); border-radius:.5rem; padding:.5rem .6rem; background:var(--surface); color:var(--text); font:inherit; }
+    input, button, select, textarea { border:1px solid var(--border); border-radius:var(--radius-sm); padding:var(--space-2) .6rem; background:var(--surface); color:var(--text); font:inherit; }
     button { cursor:pointer; background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
-    button.secondary { background:transparent; color:var(--text); border-color:var(--border); }
+    button.secondary { background:transparent; color:var(--muted); border-color: color-mix(in srgb, var(--border) 75%, transparent); }
+    button.secondary:hover { color:var(--text); border-color:var(--border); }
     button.warn { background:var(--danger); }
     .phase { text-align:center; color:var(--muted); }
     .timer { text-align:center; font-size:clamp(2rem, 8vw, 4rem); font-weight:700; margin:.4rem 0; }
-    .muted { color:var(--muted); font-size:.86rem; }
+    .muted { color:var(--muted); font-size:var(--font-sm); line-height:var(--line-height-copy); }
     .toast { min-height:1.1rem; color:var(--ok); font-size:.9rem; }
     .task-list { list-style:none; margin:0; padding:0; display:grid; gap:.4rem; max-height:45vh; overflow:auto; }
-    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:auto 1fr auto; gap:.5rem; align-items:center; }
+    .task-item { border:1px solid var(--border); border-radius:var(--radius-sm); padding:.45rem .55rem; display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:var(--space-2); align-items:center; }
     .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
-    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
+    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:var(--font-sm); word-break:break-word; line-height:var(--line-height-copy); }
     .settings-menu summary { cursor:pointer; font-weight:600; }
-    .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:1fr 1fr; gap:.55rem .8rem; align-items:center; }
+    .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:.55rem .8rem; align-items:center; }
+    .settings-grid > * { min-width:0; }
     .full { grid-column: 1 / -1; }
-    .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); border-radius:999px; padding:.15rem .55rem; font-size:.74rem; }
-    .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
-    .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
-    .break-hint { border:1px dashed var(--border); border-radius:.55rem; padding:.5rem .65rem; color:var(--muted); }
+    .chip { border-radius:var(--radius-lg); padding:.15rem .55rem; font-size:var(--font-xs); }
+    .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); }
+    .update-banner { display:none; border:1px solid var(--accent); border-radius:var(--radius-sm); padding:var(--space-2) .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+    .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:var(--space-2); flex-wrap:wrap; }
+    .break-hint { border:1px dashed var(--border); border-radius:var(--radius-sm); padding:var(--space-2) .65rem; color:var(--muted); }
   </style>
 </head>
 <body>
@@ -371,7 +378,7 @@
         selectBtn.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
 
         const line = document.createElement('div');
-        const pill = task.today ? `<span class="today-pill">${t('todayMark')}</span>` : '';
+        const pill = task.today ? `<span class="today-pill chip">${t('todayMark')}</span>` : '';
         line.innerHTML = `<div class="task-line">${escapeHtml(task.line)}</div><div class="muted">pomos: ${task.pomos} ${pill}</div>`;
 
         const right = document.createElement('div'); right.className = 'row';
