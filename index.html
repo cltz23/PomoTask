@@ -21,10 +21,38 @@
     [data-theme="solarized-dark"] { --bg:#002b36; --surface:#073642; --text:#93a1a1; --muted:#839496; --accent:#2aa198; --accent-contrast:#002b36; --border:#586e75; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(0,0,0,.35); }
     * { box-sizing: border-box; }
     body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); min-height:100vh; }
-    .app { max-width:980px; margin:0 auto; padding:var(--space-4); display:grid; gap:var(--space-4); }
-    .panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:var(--shadow); }
-    .stack { display:grid; gap:var(--space-3); }
-    .row { display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:center; }
+    .app {
+      max-width:980px;
+      margin:0 auto;
+      padding:1rem;
+      display:grid;
+      gap:1rem;
+      grid-template-areas:
+        "focus"
+        "work"
+        "options";
+    }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:1rem; box-shadow:var(--shadow); }
+    .focus-panel {
+      grid-area:focus;
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+      box-shadow: 0 16px 34px color-mix(in srgb, var(--accent) 18%, rgba(0,0,0,.12));
+      padding:1.35rem;
+      background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    }
+    .work-panel {
+      grid-area:work;
+      border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+      box-shadow:0 8px 20px color-mix(in srgb, var(--accent) 8%, rgba(0,0,0,.12));
+    }
+    .options-panel {
+      grid-area:options;
+      border-color: color-mix(in srgb, var(--border) 88%, transparent);
+      box-shadow:0 4px 10px rgba(0,0,0,.05);
+      background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+    }
+    .stack { display:grid; gap:.75rem; }
+    .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
     h1,h2,h3 { margin:0; }
     input, button, select, textarea { border:1px solid var(--border); border-radius:var(--radius-sm); padding:var(--space-2) .6rem; background:var(--surface); color:var(--text); font:inherit; }
     button { cursor:pointer; background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
@@ -43,16 +71,31 @@
     .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:.55rem .8rem; align-items:center; }
     .settings-grid > * { min-width:0; }
     .full { grid-column: 1 / -1; }
-    .chip { border-radius:var(--radius-lg); padding:.15rem .55rem; font-size:var(--font-xs); }
-    .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); }
-    .update-banner { display:none; border:1px solid var(--accent); border-radius:var(--radius-sm); padding:var(--space-2) .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
-    .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:var(--space-2); flex-wrap:wrap; }
-    .break-hint { border:1px dashed var(--border); border-radius:var(--radius-sm); padding:var(--space-2) .65rem; color:var(--muted); }
+    .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); border-radius:999px; padding:.15rem .55rem; font-size:.74rem; }
+    .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+    .update-banner.show { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .break-hint { border:1px dashed var(--border); border-radius:.55rem; padding:.5rem .65rem; color:var(--muted); }
+    .mobile-collapsible summary { cursor:pointer; font-weight:600; }
+
+    @media (max-width: 720px) {
+      .app { padding:.7rem; gap:.8rem; }
+      .panel { padding:.85rem; }
+      .focus-panel { padding:1rem; }
+      .mobile-collapsible { border:1px solid var(--border); border-radius:.55rem; padding:.2rem .6rem; }
+      .mobile-collapsible > summary { list-style:inside; }
+      .mobile-collapsible > :not(summary) { margin-top:.55rem; }
+    }
+
+    @media (min-width: 721px) {
+      .mobile-collapsible > summary { display:none; }
+      .mobile-collapsible { border:none; padding:0; }
+      .mobile-collapsible:not([open]) > :not(summary) { display:block; margin-top:0; }
+    }
   </style>
 </head>
 <body>
   <main class="app">
-    <section class="panel stack">
+    <section class="panel stack focus-panel">
       <div class="row" style="justify-content:space-between">
         <h1 data-i18n="appTitle">PomoTask</h1>
         <div class="row">
@@ -81,7 +124,36 @@
       <div class="toast" id="toast"></div>
       <div class="muted" data-i18n="shortcutsHint">Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren</div>
 
-      <details class="settings-menu">
+    </section>
+
+    <section class="panel stack work-panel">
+      <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
+      <div class="row">
+        <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
+        <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
+      </div>
+      <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
+
+      <div class="row">
+        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
+        <select id="statusFilter">
+          <option value="all" data-i18n="all">Alle</option>
+          <option value="open" data-i18n="open">Offen</option>
+          <option value="done" data-i18n="done">Erledigt</option>
+          <option value="today" data-i18n="todayOnly">Heute</option>
+        </select>
+      </div>
+
+      <div class="row muted">
+        <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
+      </div>
+
+      <ul id="taskList" class="task-list"></ul>
+
+    </section>
+
+    <section class="panel stack options-panel">
+      <details class="settings-menu mobile-collapsible" open>
         <summary data-i18n="settings">Einstellungen</summary>
         <div class="settings-grid">
           <label for="pomodoroMinutes" data-i18n="pomodoroMinutes">Pomodoro (Minuten)</label>
@@ -121,33 +193,8 @@
           <label><input id="desktopNotif" type="checkbox" /> <span data-i18n="desktopNotif">Desktop-Benachrichtigung</span></label>
         </div>
       </details>
-    </section>
 
-    <section class="panel stack">
-      <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
-      <div class="row">
-        <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
-        <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
-      </div>
-      <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
-
-      <div class="row">
-        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
-        <select id="statusFilter">
-          <option value="all" data-i18n="all">Alle</option>
-          <option value="open" data-i18n="open">Offen</option>
-          <option value="done" data-i18n="done">Erledigt</option>
-          <option value="today" data-i18n="todayOnly">Heute</option>
-        </select>
-      </div>
-
-      <div class="row muted">
-        <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
-      </div>
-
-      <ul id="taskList" class="task-list"></ul>
-
-      <details>
+      <details class="mobile-collapsible" open>
         <summary data-i18n="importExport">Import/Export</summary>
         <div class="row" style="margin-top:.5rem">
           <input id="importInput" type="file" accept=".txt,text/plain" />
