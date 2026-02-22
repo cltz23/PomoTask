@@ -82,8 +82,13 @@
     .filter-chip { background: color-mix(in srgb, var(--surface) 90%, var(--muted) 10%); color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:.18rem .55rem; font-size:.75rem; }
     .filter-chip.active { background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
     .settings-menu summary { cursor:pointer; font-weight:600; }
-    .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:.55rem .8rem; align-items:center; }
-    .settings-grid > * { min-width:0; }
+    .settings-grid { margin-top:.75rem; display:grid; gap:.9rem; }
+    .settings-group { border:1px solid var(--border); border-radius:.6rem; padding:.75rem; display:grid; gap:.65rem; }
+    .settings-group-title { margin:0; font-size:.96rem; }
+    .settings-group-help { margin:0; }
+    .settings-group-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem .85rem; align-items:center; }
+    .settings-check-list { display:grid; gap:.55rem; }
+    .settings-check-list label { display:flex; align-items:center; gap:.45rem; }
     .full { grid-column: 1 / -1; }
     .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); border-radius:999px; padding:.15rem .55rem; font-size:.74rem; }
     .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
@@ -105,13 +110,6 @@
     <section class="panel stack focus-panel">
       <div class="row" style="justify-content:space-between">
         <h1 data-i18n="appTitle">PomoTask</h1>
-        <div class="row">
-          <label for="languageSelect" class="muted" data-i18n="language">Sprache</label>
-          <select id="languageSelect">
-            <option value="de">Deutsch</option>
-            <option value="en">English</option>
-          </select>
-        </div>
       </div>
 
       <div id="updateBanner" class="update-banner">
@@ -163,41 +161,85 @@
       <details class="settings-menu mobile-collapsible" open>
         <summary data-i18n="settings">Einstellungen</summary>
         <div class="settings-grid">
-          <label for="pomodoroMinutes" data-i18n="pomodoroMinutes">Pomodoro (Minuten)</label>
-          <input id="pomodoroMinutes" type="number" min="1" value="25" />
+          <section class="settings-group">
+            <h4 class="settings-group-title" data-i18n="settingsGroupTimer">Timer</h4>
+            <p class="muted settings-group-help" data-i18n="settingsHelpTimer">Definiert Dauer und Rhythmus deiner Arbeits- und Pausenphasen.</p>
+            <div class="settings-group-grid">
+              <label for="pomodoroMinutes" data-i18n="pomodoroMinutes">Pomodoro-Minuten</label>
+              <input id="pomodoroMinutes" type="number" min="1" value="25" />
 
-          <label for="shortBreakMinutes" data-i18n="shortBreakMinutes">Kurze Pause (Minuten)</label>
-          <input id="shortBreakMinutes" type="number" min="1" value="5" />
+              <label for="shortBreakMinutes" data-i18n="shortBreakMinutes">Kurzpause-Minuten</label>
+              <input id="shortBreakMinutes" type="number" min="1" value="5" />
 
-          <label for="longBreakMinutes" data-i18n="longBreakMinutes">Lange Pause (Minuten)</label>
-          <input id="longBreakMinutes" type="number" min="1" value="15" />
+              <label for="longBreakMinutes" data-i18n="longBreakMinutes">Langpause-Minuten</label>
+              <input id="longBreakMinutes" type="number" min="1" value="15" />
 
-          <label for="longBreakEvery" data-i18n="longBreakEvery">Lange Pause alle N Pomodoros</label>
-          <input id="longBreakEvery" type="number" min="2" value="4" />
+              <label for="longBreakEvery" data-i18n="longBreakEvery">Langpause alle</label>
+              <input id="longBreakEvery" type="number" min="2" value="4" />
+            </div>
+          </section>
 
-          <label for="todayTarget" data-i18n="todayTarget">Heute-Ziel (Pomodoros)</label>
-          <input id="todayTarget" type="number" min="1" value="8" />
+          <section class="settings-group">
+            <h4 class="settings-group-title" data-i18n="settingsGroupBehavior">Verhalten</h4>
+            <p class="muted settings-group-help" data-i18n="settingsHelpBehavior">Steuert Ablauf, Warnungen und Benachrichtigungen.</p>
+            <div class="settings-group-grid">
+              <label for="todayTarget" data-i18n="todayTarget">Tagesziel</label>
+              <input id="todayTarget" type="number" min="1" value="8" />
 
-          <label for="warnBeforeEnd" data-i18n="warnBeforeEnd">Vorwarnung (Sekunden vor Ende)</label>
-          <input id="warnBeforeEnd" type="number" min="0" max="300" value="60" />
+              <label for="warnBeforeEnd" data-i18n="warnBeforeEnd">Warnung vor Ende (Sek.)</label>
+              <input id="warnBeforeEnd" type="number" min="0" max="300" value="60" />
+            </div>
+            <div class="settings-check-list">
+              <label><input id="autoSwitch" type="checkbox" checked /> <span data-i18n="autoSwitch">Phasen automatisch wechseln</span></label>
+              <label><input id="soundEnabled" type="checkbox" checked /> <span data-i18n="sound">Sound aktivieren</span></label>
+              <label><input id="desktopNotif" type="checkbox" /> <span data-i18n="desktopNotif">Desktop-Benachrichtigungen senden</span></label>
+            </div>
+          </section>
 
-          <label for="themeSelect" data-i18n="theme">Theme</label>
-          <select id="themeSelect">
-            <option value="auto">Auto (System)</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="zenburn">Zenburn</option>
-            <option value="solarized">Solarized</option>
-            <option value="solarized-dark">Solarized Dark</option>
-          </select>
+          <section class="settings-group">
+            <h4 class="settings-group-title" data-i18n="settingsGroupAppearance">Darstellung</h4>
+            <p class="muted settings-group-help" data-i18n="settingsHelpAppearance">Legt Erscheinungsbild und Sprache der Oberfläche fest.</p>
+            <div class="settings-group-grid">
+              <label for="themeSelect" data-i18n="theme">Theme wählen</label>
+              <select id="themeSelect">
+                <option value="auto">Auto (System)</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="zenburn">Zenburn</option>
+                <option value="solarized">Solarized</option>
+                <option value="solarized-dark">Solarized Dark</option>
+              </select>
 
-          <label><input id="breakHintsEnabled" type="checkbox" checked /> <span data-i18n="breakHintsEnabled">Pausen-Hinweise zeigen</span></label>
-          <label for="breakHintsText" data-i18n="breakHintsText">Pausen-Hinweise (je Zeile ein Hinweis)</label>
-          <textarea id="breakHintsText" rows="4" class="full" style="width:100%"></textarea>
+              <label for="languageSelect" data-i18n="language">Sprache wählen</label>
+              <select id="languageSelect">
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+          </section>
 
-          <label><input id="autoSwitch" type="checkbox" checked /> <span data-i18n="autoSwitch">Auto-Phasenwechsel</span></label>
-          <label><input id="soundEnabled" type="checkbox" checked /> <span data-i18n="sound">Sound</span></label>
-          <label><input id="desktopNotif" type="checkbox" /> <span data-i18n="desktopNotif">Desktop-Benachrichtigung</span></label>
+          <section class="settings-group">
+            <h4 class="settings-group-title" data-i18n="settingsGroupBreakHints">Pause-Hinweise</h4>
+            <p class="muted settings-group-help" data-i18n="settingsHelpBreakHints">Optional: blendet in Pausen kurze Erholungsimpulse ein.</p>
+            <div class="settings-check-list">
+              <label><input id="breakHintsEnabled" type="checkbox" checked /> <span data-i18n="breakHintsEnabled">Pause-Hinweise anzeigen</span></label>
+            </div>
+            <label for="breakHintsText" data-i18n="breakHintsText">Hinweise (eine Zeile pro Hinweis)</label>
+            <textarea id="breakHintsText" rows="4" style="width:100%"></textarea>
+          </section>
+
+          <section class="settings-group">
+            <h4 class="settings-group-title" data-i18n="settingsGroupData">Daten</h4>
+            <p class="muted settings-group-help" data-i18n="settingsHelpData">Seltene Aktionen für Import, Export und Backups.</p>
+            <div class="row">
+              <input id="importInput" type="file" accept=".txt,text/plain" />
+              <button id="exportBtn" class="secondary" data-i18n="exportTxt">tasks.txt exportieren</button>
+            </div>
+            <div class="row">
+              <input id="importJsonInput" type="file" accept=".json,application/json" />
+              <button id="exportJsonBtn" class="secondary" data-i18n="exportJson">JSON-Backup exportieren</button>
+            </div>
+          </section>
         </div>
       </details>
     </section>
@@ -245,15 +287,6 @@
 
       <ul id="taskList" class="task-list"></ul>
 
-      <details class="mobile-collapsible" open>
-        <summary data-i18n="importExport">Import/Export</summary>
-        <div class="row" style="margin-top:.5rem">
-          <input id="importInput" type="file" accept=".txt,text/plain" />
-          <button id="exportBtn" class="secondary" data-i18n="exportTxt">Export tasks.txt</button>
-          <button id="exportJsonBtn" class="secondary" data-i18n="exportJson">Backup JSON</button>
-          <input id="importJsonInput" type="file" accept=".json,application/json" />
-        </div>
-      </details>
     </section>
   </main>
 
@@ -264,8 +297,10 @@
 
     const I18N = {
       de: {
-        appTitle:'PomoTask', language:'Sprache', settings:'Einstellungen', pomodoroMinutes:'Pomodoro (Minuten)', shortBreakMinutes:'Kurze Pause (Minuten)', longBreakMinutes:'Lange Pause (Minuten)', longBreakEvery:'Lange Pause alle N Pomodoros',
-        todayTarget:'Heute-Ziel (Pomodoros)', warnBeforeEnd:'Vorwarnung (Sekunden vor Ende)', theme:'Theme', autoSwitch:'Auto-Phasenwechsel', sound:'Sound', desktopNotif:'Desktop-Benachrichtigung',
+        appTitle:'PomoTask', language:'Sprache', settings:'Einstellungen', pomodoroMinutes:'Pomodoro-Minuten', shortBreakMinutes:'Kurzpause-Minuten', longBreakMinutes:'Langpause-Minuten', longBreakEvery:'Langpause alle',
+        todayTarget:'Tagesziel', warnBeforeEnd:'Warnung vor Ende (Sek.)', theme:'Theme wählen', autoSwitch:'Phasen automatisch wechseln', sound:'Sound aktivieren', desktopNotif:'Desktop-Benachrichtigungen senden',
+        settingsGroupTimer:'Timer', settingsGroupBehavior:'Verhalten', settingsGroupAppearance:'Darstellung', settingsGroupBreakHints:'Pause-Hinweise', settingsGroupData:'Daten',
+        settingsHelpTimer:'Definiert Dauer und Rhythmus deiner Arbeits- und Pausenphasen.', settingsHelpBehavior:'Steuert Ablauf, Warnungen und Benachrichtigungen.', settingsHelpAppearance:'Legt Erscheinungsbild und Sprache der Oberfläche fest.', settingsHelpBreakHints:'Optional: blendet in Pausen kurze Erholungsimpulse ein.', settingsHelpData:'Seltene Aktionen für Import, Export und Backups.',
         newTask:'Neue Aufgabe (todo.txt Kernformat)', add:'Hinzufügen', taskFormatHint:'Unterstützt: x, (A), Datum, Klartext + pomos:N.', all:'Alle', open:'Offen', done:'Erledigt', todayOnly:'Heute',
         resetFilters:'Filter zurücksetzen', advancedFilters:'Erweiterte Filter', priorityAll:'Priorität', priorityNone:'Keine Priorität',
         statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Suche…',
@@ -274,11 +309,13 @@
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
         notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
         pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
-        breakHintsEnabled:'Pausen-Hinweise zeigen', breakHintsText:'Pausen-Hinweise (je Zeile ein Hinweis)', breakHintPrefix:'Tipp für die Pause', autoTheme:'Auto (System)'
+        breakHintsEnabled:'Pause-Hinweise anzeigen', breakHintsText:'Hinweise (eine Zeile pro Hinweis)', breakHintPrefix:'Tipp für die Pause', autoTheme:'Auto (System)'
       },
       en: {
-        appTitle:'PomoTask', language:'Language', settings:'Settings', pomodoroMinutes:'Pomodoro (minutes)', shortBreakMinutes:'Short break (minutes)', longBreakMinutes:'Long break (minutes)', longBreakEvery:'Long break every N pomodoros',
-        todayTarget:'Today target (pomodoros)', warnBeforeEnd:'Warning (seconds before end)', theme:'Theme', autoSwitch:'Auto phase switch', sound:'Sound', desktopNotif:'Desktop notifications',
+        appTitle:'PomoTask', language:'Language', settings:'Settings', pomodoroMinutes:'Pomodoro minutes', shortBreakMinutes:'Short-break minutes', longBreakMinutes:'Long-break minutes', longBreakEvery:'Long break every',
+        todayTarget:'Daily target', warnBeforeEnd:'Warn before end (sec.)', theme:'Choose theme', autoSwitch:'Switch phases automatically', sound:'Enable sound', desktopNotif:'Send desktop notifications',
+        settingsGroupTimer:'Timer', settingsGroupBehavior:'Behavior', settingsGroupAppearance:'Appearance', settingsGroupBreakHints:'Break hints', settingsGroupData:'Data',
+        settingsHelpTimer:'Defines durations and cadence for work and break phases.', settingsHelpBehavior:'Controls flow, warnings and notifications.', settingsHelpAppearance:'Sets the app look and interface language.', settingsHelpBreakHints:'Optional: shows short recovery prompts during breaks.', settingsHelpData:'Rare actions for import, export and backups.',
         newTask:'New task (todo.txt core format)', add:'Add', taskFormatHint:'Supports: x, (A), date, plain text + pomos:N.', all:'All', open:'Open', done:'Done', todayOnly:'Today',
         resetFilters:'Reset filters', advancedFilters:'Advanced filters', priorityAll:'Priority', priorityNone:'No priority',
         statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Search…',
@@ -287,7 +324,7 @@
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
         notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
         pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
-        breakHintsEnabled:'Show break hints', breakHintsText:'Break hints (one hint per line)', breakHintPrefix:'Break tip', autoTheme:'Auto (System)'
+        breakHintsEnabled:'Show break hints', breakHintsText:'Hints (one per line)', breakHintPrefix:'Break tip', autoTheme:'Auto (System)'
       }
     };
 
