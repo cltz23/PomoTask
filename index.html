@@ -10,6 +10,10 @@
     :root {
       --bg: #f5f7fb; --surface: #ffffff; --text: #1f2937; --muted: #6b7280; --accent: #2563eb;
       --accent-contrast: #ffffff; --border: #d1d5db; --danger: #dc2626; --ok: #059669; --shadow: 0 10px 20px rgba(0,0,0,.08);
+      --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-5: 1.25rem;
+      --font-xs: .75rem; --font-sm: .875rem; --font-md: 1rem; --font-lg: 1.125rem;
+      --radius-sm: .5rem; --radius-md: .75rem; --radius-lg: 999px;
+      --line-height-copy: 1.4;
     }
     [data-theme="dark"] { --bg:#0f172a; --surface:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#60a5fa; --accent-contrast:#0f172a; --border:#334155; --danger:#f87171; --ok:#34d399; --shadow:0 10px 20px rgba(0,0,0,.35); }
     [data-theme="zenburn"] { --bg:#3f3f3f; --surface:#4f4f4f; --text:#dcdccc; --muted:#9faf8f; --accent:#8cd0d3; --accent-contrast:#2b2b2b; --border:#5f7f5f; --danger:#cc9393; --ok:#7f9f7f; --shadow:0 10px 20px rgba(0,0,0,.4); }
@@ -17,25 +21,69 @@
     [data-theme="solarized-dark"] { --bg:#002b36; --surface:#073642; --text:#93a1a1; --muted:#839496; --accent:#2aa198; --accent-contrast:#002b36; --border:#586e75; --danger:#dc322f; --ok:#859900; --shadow:0 10px 20px rgba(0,0,0,.35); }
     * { box-sizing: border-box; }
     body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); min-height:100vh; }
-    .app { max-width:980px; margin:0 auto; padding:1rem; display:grid; gap:1rem; }
+    .app {
+      max-width:980px;
+      margin:0 auto;
+      padding:1rem;
+      display:grid;
+      gap:1rem;
+      grid-template-areas:
+        "focus"
+        "work"
+        "options";
+    }
     .panel { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:1rem; box-shadow:var(--shadow); }
+    .focus-panel {
+      grid-area:focus;
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+      box-shadow: 0 16px 34px color-mix(in srgb, var(--accent) 18%, rgba(0,0,0,.12));
+      padding:1.35rem;
+      background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    }
+    .work-panel {
+      grid-area:work;
+      border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+      box-shadow:0 8px 20px color-mix(in srgb, var(--accent) 8%, rgba(0,0,0,.12));
+    }
+    .options-panel {
+      grid-area:options;
+      border-color: color-mix(in srgb, var(--border) 88%, transparent);
+      box-shadow:0 4px 10px rgba(0,0,0,.05);
+      background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+    }
     .stack { display:grid; gap:.75rem; }
     .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
     h1,h2,h3 { margin:0; }
-    input, button, select, textarea { border:1px solid var(--border); border-radius:.5rem; padding:.5rem .6rem; background:var(--surface); color:var(--text); font:inherit; }
+    input, button, select, textarea { border:1px solid var(--border); border-radius:var(--radius-sm); padding:var(--space-2) .6rem; background:var(--surface); color:var(--text); font:inherit; }
     button { cursor:pointer; background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
-    button.secondary { background:transparent; color:var(--text); border-color:var(--border); }
+    button.secondary { background:transparent; color:var(--muted); border-color: color-mix(in srgb, var(--border) 75%, transparent); }
+    button.secondary:hover { color:var(--text); border-color:var(--border); }
     button.warn { background:var(--danger); }
     .phase { text-align:center; color:var(--muted); }
     .timer { text-align:center; font-size:clamp(2rem, 8vw, 4rem); font-weight:700; margin:.4rem 0; }
-    .muted { color:var(--muted); font-size:.86rem; }
+    .muted { color:var(--muted); font-size:var(--font-sm); line-height:var(--line-height-copy); }
     .toast { min-height:1.1rem; color:var(--ok); font-size:.9rem; }
     .task-list { list-style:none; margin:0; padding:0; display:grid; gap:.4rem; max-height:45vh; overflow:auto; }
-    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:auto 1fr auto; gap:.5rem; align-items:center; }
+    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start; }
     .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
+    .task-main { border:0; background:transparent; color:inherit; text-align:left; padding:0; display:grid; gap:.28rem; cursor:pointer; }
+    .task-main:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:.35rem; }
     .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
+    .task-meta { display:flex; gap:.3rem; flex-wrap:wrap; align-items:center; }
+    .task-chip { border:1px solid color-mix(in srgb, var(--muted) 40%, var(--border)); color:var(--muted); border-radius:999px; font-size:.68rem; padding:.08rem .45rem; line-height:1.35; background: color-mix(in srgb, var(--surface) 80%, var(--muted) 10%); }
+    .task-actions-menu { position:relative; }
+    .task-actions-menu summary { list-style:none; cursor:pointer; border:1px solid var(--border); border-radius:.45rem; padding:.15rem .5rem; min-width:2rem; text-align:center; user-select:none; }
+    .task-actions-menu summary::-webkit-details-marker { display:none; }
+    .task-actions-popover { position:absolute; right:0; top:calc(100% + .3rem); z-index:3; background:var(--surface); border:1px solid var(--border); border-radius:.55rem; padding:.35rem; box-shadow:var(--shadow); display:grid; gap:.25rem; min-width:10rem; }
+    .task-actions-popover button { width:100%; text-align:left; }
+    .task-more summary { cursor:pointer; color:var(--muted); font-size:.75rem; }
+    .task-more .muted { font-size:.75rem; display:grid; gap:.15rem; margin-top:.2rem; }
+    .filter-chips { display:flex; gap:.3rem; flex-wrap:wrap; }
+    .filter-chip { background: color-mix(in srgb, var(--surface) 90%, var(--muted) 10%); color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:.18rem .55rem; font-size:.75rem; }
+    .filter-chip.active { background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
     .settings-menu summary { cursor:pointer; font-weight:600; }
-    .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:1fr 1fr; gap:.55rem .8rem; align-items:center; }
+    .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:.55rem .8rem; align-items:center; }
+    .settings-grid > * { min-width:0; }
     .full { grid-column: 1 / -1; }
     .today-pill { background: color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid var(--accent); border-radius:999px; padding:.15rem .55rem; font-size:.74rem; }
     .update-banner { display:none; border:1px solid var(--accent); border-radius:.55rem; padding:.5rem .7rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
@@ -54,7 +102,7 @@
 </head>
 <body>
   <main class="app">
-    <section class="panel stack">
+    <section class="panel stack focus-panel">
       <div class="row" style="justify-content:space-between">
         <h1 data-i18n="appTitle">PomoTask</h1>
         <div class="row">
@@ -83,7 +131,36 @@
       <div class="toast" id="toast"></div>
       <div class="muted" data-i18n="shortcutsHint">Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren</div>
 
-      <details class="settings-menu">
+    </section>
+
+    <section class="panel stack work-panel">
+      <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
+      <div class="row">
+        <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
+        <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
+      </div>
+      <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
+
+      <div class="row">
+        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
+        <select id="statusFilter">
+          <option value="all" data-i18n="all">Alle</option>
+          <option value="open" data-i18n="open">Offen</option>
+          <option value="done" data-i18n="done">Erledigt</option>
+          <option value="today" data-i18n="todayOnly">Heute</option>
+        </select>
+      </div>
+
+      <div class="row muted">
+        <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
+      </div>
+
+      <ul id="taskList" class="task-list"></ul>
+
+    </section>
+
+    <section class="panel stack options-panel">
+      <details class="settings-menu mobile-collapsible" open>
         <summary data-i18n="settings">Einstellungen</summary>
         <div class="settings-grid">
           <label for="pomodoroMinutes" data-i18n="pomodoroMinutes">Pomodoro (Minuten)</label>
@@ -168,7 +245,7 @@
 
       <ul id="taskList" class="task-list"></ul>
 
-      <details>
+      <details class="mobile-collapsible" open>
         <summary data-i18n="importExport">Import/Export</summary>
         <div class="row" style="margin-top:.5rem">
           <input id="importInput" type="file" accept=".txt,text/plain" />
@@ -193,7 +270,7 @@
         resetFilters:'Filter zurücksetzen', advancedFilters:'Erweiterte Filter', priorityAll:'Priorität', priorityNone:'Keine Priorität',
         statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Suche…',
         todayProgress:'Heute-Fortschritt', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'Backup JSON', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren',
-        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute', more:'Mehr', created:'Erstellt', doneAt:'Erledigt am', technicalMeta:'Technische Metadaten',
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
         notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
         pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
@@ -206,7 +283,7 @@
         resetFilters:'Reset filters', advancedFilters:'Advanced filters', priorityAll:'Priority', priorityNone:'No priority',
         statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Search…',
         todayProgress:'Today progress', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'JSON backup', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Focus search',
-        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today', more:'More', created:'Created', doneAt:'Completed', technicalMeta:'Technical metadata',
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
         notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
         pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
@@ -434,32 +511,68 @@
     function renderTasks() {
       els.taskList.innerHTML = '';
       for (const task of filteredTasks()) {
-        const li = document.createElement('li'); li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
+        const li = document.createElement('li');
+        li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
 
-        const selectBtn = document.createElement('button');
-        selectBtn.textContent = task.id === state.activeTaskId ? t('active') : t('select');
-        selectBtn.className = 'secondary';
-        selectBtn.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'task-main';
+        main.setAttribute('aria-pressed', String(task.id === state.activeTaskId));
+        main.setAttribute('aria-label', `${t('select')}: ${task.line}`);
+        main.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
 
         const line = document.createElement('div');
-        const pill = task.today ? `<span class="today-pill">${t('todayMark')}</span>` : '';
-        line.innerHTML = `<div class="task-line">${escapeHtml(task.line)}</div><div class="muted">pomos: ${task.pomos} ${pill}</div>`;
+        line.className = 'task-line';
+        line.textContent = task.line;
 
-        const right = document.createElement('div'); right.className = 'row';
+        const meta = document.createElement('div');
+        meta.className = 'task-meta';
+        const pomosChip = `<span class="task-chip">pomos:${task.pomos}</span>`;
+        const statusChip = task.completed
+          ? `<span class="task-chip">${t('done')}</span>`
+          : (task.today ? `<span class="task-chip">${t('todayMark')}</span>` : `<span class="task-chip">${t('open')}</span>`);
+        meta.innerHTML = `${statusChip}${pomosChip}`;
+
+        const more = document.createElement('details');
+        more.className = 'task-more';
+        const technical = task.line.match(/\b[a-z]+:[^\s]+/gi) || [];
+        more.innerHTML = `<summary>${t('more')}</summary><div class="muted">`
+          + (task.creationDate ? `<span>${t('created')}: ${task.creationDate}</span>` : '')
+          + (task.completionDate ? `<span>${t('doneAt')}: ${task.completionDate}</span>` : '')
+          + (technical.length ? `<span>${t('technicalMeta')}: ${technical.join(', ')}</span>` : '')
+          + `</div>`;
+
+        main.append(line, meta);
+        const mainWrap = document.createElement('div');
+        mainWrap.className = 'stack';
+        mainWrap.style.gap = '.18rem';
+        mainWrap.append(main, more);
+
+        const menu = document.createElement('details');
+        menu.className = 'task-actions-menu';
+        menu.innerHTML = `<summary aria-label="${t('more')}">⋯</summary><div class="task-actions-popover"></div>`;
+        const pop = menu.querySelector('.task-actions-popover');
+
         const todayBtn = document.createElement('button');
-        todayBtn.textContent = t('todayMark'); todayBtn.className = 'secondary';
+        todayBtn.type = 'button';
+        todayBtn.textContent = t('todayMark');
+        todayBtn.className = 'secondary';
         todayBtn.onclick = () => { task.today = !task.today; rebuildLine(task); render(); saveState(); };
 
         const toggle = document.createElement('button');
-        toggle.textContent = task.completed ? t('markOpen') : t('markDone'); toggle.className = 'secondary';
+        toggle.type = 'button';
+        toggle.textContent = task.completed ? t('markOpen') : t('markDone');
+        toggle.className = 'secondary';
         toggle.onclick = () => { task.completed = !task.completed; task.line = task.completed ? `x ${task.line.replace(/^x\s+/, '')}` : task.line.replace(/^x\s+/, ''); render(); saveState(); };
 
         const remove = document.createElement('button');
-        remove.textContent = t('remove'); remove.className = 'warn';
+        remove.type = 'button';
+        remove.textContent = t('remove');
+        remove.className = 'warn';
         remove.onclick = () => { state.tasks = state.tasks.filter(x => x.id !== task.id); if (state.activeTaskId === task.id) state.activeTaskId = null; render(); saveState(); };
 
-        right.append(todayBtn, toggle, remove);
-        li.append(selectBtn, line, right);
+        pop.append(todayBtn, toggle, remove);
+        li.append(mainWrap, menu);
         els.taskList.appendChild(li);
       }
 
