@@ -64,9 +64,23 @@
     .muted { color:var(--muted); font-size:var(--font-sm); line-height:var(--line-height-copy); }
     .toast { min-height:1.1rem; color:var(--ok); font-size:.9rem; }
     .task-list { list-style:none; margin:0; padding:0; display:grid; gap:.4rem; max-height:45vh; overflow:auto; }
-    .task-item { border:1px solid var(--border); border-radius:var(--radius-sm); padding:.45rem .55rem; display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:var(--space-2); align-items:center; }
+    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start; }
     .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
-    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:var(--font-sm); word-break:break-word; line-height:var(--line-height-copy); }
+    .task-main { border:0; background:transparent; color:inherit; text-align:left; padding:0; display:grid; gap:.28rem; cursor:pointer; }
+    .task-main:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:.35rem; }
+    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
+    .task-meta { display:flex; gap:.3rem; flex-wrap:wrap; align-items:center; }
+    .task-chip { border:1px solid color-mix(in srgb, var(--muted) 40%, var(--border)); color:var(--muted); border-radius:999px; font-size:.68rem; padding:.08rem .45rem; line-height:1.35; background: color-mix(in srgb, var(--surface) 80%, var(--muted) 10%); }
+    .task-actions-menu { position:relative; }
+    .task-actions-menu summary { list-style:none; cursor:pointer; border:1px solid var(--border); border-radius:.45rem; padding:.15rem .5rem; min-width:2rem; text-align:center; user-select:none; }
+    .task-actions-menu summary::-webkit-details-marker { display:none; }
+    .task-actions-popover { position:absolute; right:0; top:calc(100% + .3rem); z-index:3; background:var(--surface); border:1px solid var(--border); border-radius:.55rem; padding:.35rem; box-shadow:var(--shadow); display:grid; gap:.25rem; min-width:10rem; }
+    .task-actions-popover button { width:100%; text-align:left; }
+    .task-more summary { cursor:pointer; color:var(--muted); font-size:.75rem; }
+    .task-more .muted { font-size:.75rem; display:grid; gap:.15rem; margin-top:.2rem; }
+    .filter-chips { display:flex; gap:.3rem; flex-wrap:wrap; }
+    .filter-chip { background: color-mix(in srgb, var(--surface) 90%, var(--muted) 10%); color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:.18rem .55rem; font-size:.75rem; }
+    .filter-chip.active { background:var(--accent); color:var(--accent-contrast); border-color:transparent; }
     .settings-menu summary { cursor:pointer; font-weight:600; }
     .settings-grid { margin-top:.6rem; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:.55rem .8rem; align-items:center; }
     .settings-grid > * { min-width:0; }
@@ -193,6 +207,31 @@
           <label><input id="desktopNotif" type="checkbox" /> <span data-i18n="desktopNotif">Desktop-Benachrichtigung</span></label>
         </div>
       </details>
+    </section>
+
+    <section class="panel stack">
+      <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
+      <div class="row">
+        <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
+        <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
+      </div>
+      <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
+
+      <div class="row">
+        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
+        <div id="statusFilterChips" class="filter-chips" role="group" aria-label="Task filter">
+          <button type="button" class="filter-chip" data-filter="all" data-i18n="all" aria-pressed="false">Alle</button>
+          <button type="button" class="filter-chip" data-filter="open" data-i18n="open" aria-pressed="false">Offen</button>
+          <button type="button" class="filter-chip" data-filter="done" data-i18n="done" aria-pressed="false">Erledigt</button>
+          <button type="button" class="filter-chip" data-filter="today" data-i18n="todayOnly" aria-pressed="false">Heute</button>
+        </div>
+      </div>
+
+      <div class="row muted">
+        <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
+      </div>
+
+      <ul id="taskList" class="task-list"></ul>
 
       <details class="mobile-collapsible" open>
         <summary data-i18n="importExport">Import/Export</summary>
@@ -217,7 +256,7 @@
         todayTarget:'Heute-Ziel (Pomodoros)', warnBeforeEnd:'Vorwarnung (Sekunden vor Ende)', theme:'Theme', autoSwitch:'Auto-Phasenwechsel', sound:'Sound', desktopNotif:'Desktop-Benachrichtigung',
         newTask:'Neue Aufgabe (todo.txt Kernformat)', add:'Hinzufügen', taskFormatHint:'Unterstützt: x, (A), Datum, Klartext + pomos:N.', all:'Alle', open:'Offen', done:'Erledigt', todayOnly:'Heute',
         todayProgress:'Heute-Fortschritt', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'Backup JSON', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren',
-        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute', more:'Mehr', created:'Erstellt', doneAt:'Erledigt am', technicalMeta:'Technische Metadaten',
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
         notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
         pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
@@ -228,7 +267,7 @@
         todayTarget:'Today target (pomodoros)', warnBeforeEnd:'Warning (seconds before end)', theme:'Theme', autoSwitch:'Auto phase switch', sound:'Sound', desktopNotif:'Desktop notifications',
         newTask:'New task (todo.txt core format)', add:'Add', taskFormatHint:'Supports: x, (A), date, plain text + pomos:N.', all:'All', open:'Open', done:'Done', todayOnly:'Today',
         todayProgress:'Today progress', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'JSON backup', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Focus search',
-        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today',
+        phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today', more:'More', created:'Created', doneAt:'Completed', technicalMeta:'Technical metadata',
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
         notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
         pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
@@ -238,7 +277,7 @@
 
     const els = {
       phaseLabel: document.getElementById('phaseLabel'), timerDisplay: document.getElementById('timerDisplay'), startPauseBtn: document.getElementById('startPauseBtn'), resetBtn: document.getElementById('resetBtn'), skipBtn: document.getElementById('skipBtn'), activeTaskLabel: document.getElementById('activeTaskLabel'), toast: document.getElementById('toast'),
-      taskInput: document.getElementById('taskInput'), addTaskBtn: document.getElementById('addTaskBtn'), searchInput: document.getElementById('searchInput'), statusFilter: document.getElementById('statusFilter'), taskList: document.getElementById('taskList'), todayProgress: document.getElementById('todayProgress'),
+      taskInput: document.getElementById('taskInput'), addTaskBtn: document.getElementById('addTaskBtn'), searchInput: document.getElementById('searchInput'), statusFilterChips: document.getElementById('statusFilterChips'), taskList: document.getElementById('taskList'), todayProgress: document.getElementById('todayProgress'),
       importInput: document.getElementById('importInput'), exportBtn: document.getElementById('exportBtn'), exportJsonBtn: document.getElementById('exportJsonBtn'), importJsonInput: document.getElementById('importJsonInput'),
       pomodoroMinutes: document.getElementById('pomodoroMinutes'), shortBreakMinutes: document.getElementById('shortBreakMinutes'), longBreakMinutes: document.getElementById('longBreakMinutes'), longBreakEvery: document.getElementById('longBreakEvery'), todayTarget: document.getElementById('todayTarget'), warnBeforeEnd: document.getElementById('warnBeforeEnd'),
       autoSwitch: document.getElementById('autoSwitch'), soundEnabled: document.getElementById('soundEnabled'), desktopNotif: document.getElementById('desktopNotif'), themeSelect: document.getElementById('themeSelect'), languageSelect: document.getElementById('languageSelect'),
@@ -417,32 +456,68 @@
     function renderTasks() {
       els.taskList.innerHTML = '';
       for (const task of filteredTasks()) {
-        const li = document.createElement('li'); li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
+        const li = document.createElement('li');
+        li.className = 'task-item' + (task.id === state.activeTaskId ? ' active' : '');
 
-        const selectBtn = document.createElement('button');
-        selectBtn.textContent = task.id === state.activeTaskId ? t('active') : t('select');
-        selectBtn.className = 'secondary';
-        selectBtn.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'task-main';
+        main.setAttribute('aria-pressed', String(task.id === state.activeTaskId));
+        main.setAttribute('aria-label', `${t('select')}: ${task.line}`);
+        main.onclick = () => { state.activeTaskId = task.id; render(); saveState(); };
 
         const line = document.createElement('div');
-        const pill = task.today ? `<span class="today-pill chip">${t('todayMark')}</span>` : '';
-        line.innerHTML = `<div class="task-line">${escapeHtml(task.line)}</div><div class="muted">pomos: ${task.pomos} ${pill}</div>`;
+        line.className = 'task-line';
+        line.textContent = task.line;
 
-        const right = document.createElement('div'); right.className = 'row';
+        const meta = document.createElement('div');
+        meta.className = 'task-meta';
+        const pomosChip = `<span class="task-chip">pomos:${task.pomos}</span>`;
+        const statusChip = task.completed
+          ? `<span class="task-chip">${t('done')}</span>`
+          : (task.today ? `<span class="task-chip">${t('todayMark')}</span>` : `<span class="task-chip">${t('open')}</span>`);
+        meta.innerHTML = `${statusChip}${pomosChip}`;
+
+        const more = document.createElement('details');
+        more.className = 'task-more';
+        const technical = task.line.match(/\b[a-z]+:[^\s]+/gi) || [];
+        more.innerHTML = `<summary>${t('more')}</summary><div class="muted">`
+          + (task.creationDate ? `<span>${t('created')}: ${task.creationDate}</span>` : '')
+          + (task.completionDate ? `<span>${t('doneAt')}: ${task.completionDate}</span>` : '')
+          + (technical.length ? `<span>${t('technicalMeta')}: ${technical.join(', ')}</span>` : '')
+          + `</div>`;
+
+        main.append(line, meta);
+        const mainWrap = document.createElement('div');
+        mainWrap.className = 'stack';
+        mainWrap.style.gap = '.18rem';
+        mainWrap.append(main, more);
+
+        const menu = document.createElement('details');
+        menu.className = 'task-actions-menu';
+        menu.innerHTML = `<summary aria-label="${t('more')}">⋯</summary><div class="task-actions-popover"></div>`;
+        const pop = menu.querySelector('.task-actions-popover');
+
         const todayBtn = document.createElement('button');
-        todayBtn.textContent = t('todayMark'); todayBtn.className = 'secondary';
+        todayBtn.type = 'button';
+        todayBtn.textContent = t('todayMark');
+        todayBtn.className = 'secondary';
         todayBtn.onclick = () => { task.today = !task.today; rebuildLine(task); render(); saveState(); };
 
         const toggle = document.createElement('button');
-        toggle.textContent = task.completed ? t('markOpen') : t('markDone'); toggle.className = 'secondary';
+        toggle.type = 'button';
+        toggle.textContent = task.completed ? t('markOpen') : t('markDone');
+        toggle.className = 'secondary';
         toggle.onclick = () => { task.completed = !task.completed; task.line = task.completed ? `x ${task.line.replace(/^x\s+/, '')}` : task.line.replace(/^x\s+/, ''); render(); saveState(); };
 
         const remove = document.createElement('button');
-        remove.textContent = t('remove'); remove.className = 'warn';
+        remove.type = 'button';
+        remove.textContent = t('remove');
+        remove.className = 'warn';
         remove.onclick = () => { state.tasks = state.tasks.filter(x => x.id !== task.id); if (state.activeTaskId === task.id) state.activeTaskId = null; render(); saveState(); };
 
-        right.append(todayBtn, toggle, remove);
-        li.append(selectBtn, line, right);
+        pop.append(todayBtn, toggle, remove);
+        li.append(mainWrap, menu);
         els.taskList.appendChild(li);
       }
 
@@ -473,7 +548,11 @@
       els.breakHintsEnabled.checked = !!state.settings.breakHintsEnabled;
       els.breakHintsText.value = state.settings.breakHintsText || '';
       els.searchInput.value = state.filter.query;
-      els.statusFilter.value = state.filter.status;
+      for (const chip of els.statusFilterChips.querySelectorAll('[data-filter]')) {
+        const active = chip.dataset.filter === state.filter.status;
+        chip.classList.toggle('active', active);
+        chip.setAttribute('aria-pressed', String(active));
+      }
     }
 
     function render() { applyTranslations(); renderTasks(); renderTimer(); renderSettings(); showBreakHintIfNeeded(); }
@@ -617,7 +696,14 @@
       els.importJsonInput.addEventListener('change', e => importBackupJson(e.target.files[0]));
 
       els.searchInput.addEventListener('input', e => { state.filter.query = e.target.value; renderTasks(); saveState(); });
-      els.statusFilter.addEventListener('change', e => { state.filter.status = e.target.value; renderTasks(); saveState(); });
+      els.statusFilterChips.addEventListener('click', e => {
+        const chip = e.target.closest('[data-filter]');
+        if (!chip) return;
+        state.filter.status = chip.dataset.filter;
+        renderTasks();
+        renderSettings();
+        saveState();
+      });
       els.themeSelect.addEventListener('change', e => { applyTheme(e.target.value); render(); });
       els.languageSelect.addEventListener('change', e => { state.settings.language = e.target.value; render(); saveState(); });
       els.breakHintsEnabled.addEventListener('change', e => { state.settings.breakHintsEnabled = e.target.checked; showBreakHintIfNeeded(); saveState(); });
