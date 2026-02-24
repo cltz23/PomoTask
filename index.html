@@ -103,6 +103,7 @@
     .active-filters { display:flex; gap:.4rem; overflow-x:auto; white-space:nowrap; padding-bottom:.2rem; }
     .active-filters:empty { display:none; }
     .filter-pill { border:1px solid var(--border); border-radius:999px; padding:.2rem .6rem; font-size:.8rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   </style>
 </head>
 <body>
@@ -120,40 +121,14 @@
       <div class="phase" id="phaseLabel">Phase: Pomodoro</div>
       <div id="timerDisplay" class="timer">25:00</div>
       <div class="row" style="justify-content:center">
-        <button id="startPauseBtn">Start</button>
-        <button id="resetBtn" class="secondary">Reset</button>
-        <button id="skipBtn" class="secondary">Phase überspringen</button>
+        <button id="startPauseBtn" data-i18n="start">Start</button>
+        <button id="resetBtn" class="secondary" data-i18n="reset">Reset</button>
+        <button id="skipBtn" class="secondary" data-i18n="skipPhase">Phase überspringen</button>
       </div>
       <div class="muted" id="activeTaskLabel">Aktive Task: –</div>
       <div class="break-hint" id="breakHint" hidden></div>
       <div class="toast" id="toast"></div>
       <div class="muted" data-i18n="shortcutsHint">Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren</div>
-
-    </section>
-
-    <section class="panel stack work-panel">
-      <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
-      <div class="row">
-        <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
-        <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
-      </div>
-      <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
-
-      <div class="row">
-        <input id="searchInput" style="flex:1" placeholder="Suche in Aufgaben…" />
-        <select id="statusFilter">
-          <option value="all" data-i18n="all">Alle</option>
-          <option value="open" data-i18n="open">Offen</option>
-          <option value="done" data-i18n="done">Erledigt</option>
-          <option value="today" data-i18n="todayOnly">Heute</option>
-        </select>
-      </div>
-
-      <div class="row muted">
-        <span data-i18n="todayProgress">Heute-Fortschritt</span>: <span id="todayProgress">0/8</span>
-      </div>
-
-      <ul id="taskList" class="task-list"></ul>
 
     </section>
 
@@ -244,15 +219,17 @@
       </details>
     </section>
 
-    <section class="panel stack">
+    <section class="panel stack work-panel">
       <h3 data-i18n="newTask">Neue Aufgabe (todo.txt Kernformat)</h3>
       <div class="row">
+        <label for="taskInput" class="sr-only" data-i18n="taskInputLabel">Aufgabentext</label>
         <input id="taskInput" style="flex:1" placeholder="z. B. (A) 2026-01-14 Bericht schreiben pomos:0" />
         <button id="addTaskBtn" data-i18n="add">Hinzufügen</button>
       </div>
       <p class="muted" data-i18n="taskFormatHint">Unterstützt: x, (A), Datum, Klartext + pomos:N.</p>
 
       <div class="filters-top-row">
+        <label for="searchInput" class="sr-only" data-i18n="searchInputLabel">Aufgaben durchsuchen</label>
         <input id="searchInput" placeholder="Suche…" />
         <button id="resetFiltersBtn" class="secondary" data-i18n="resetFilters">Filter zurücksetzen</button>
       </div>
@@ -304,12 +281,14 @@
         newTask:'Neue Aufgabe (todo.txt Kernformat)', add:'Hinzufügen', taskFormatHint:'Unterstützt: x, (A), Datum, Klartext + pomos:N.', all:'Alle', open:'Offen', done:'Erledigt', todayOnly:'Heute',
         resetFilters:'Filter zurücksetzen', advancedFilters:'Erweiterte Filter', priorityAll:'Priorität', priorityNone:'Keine Priorität',
         statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Suche…',
+        start:'Start', pause:'Pause', reset:'Reset', skipPhase:'Phase überspringen',
+        taskInputLabel:'Aufgabentext', searchInputLabel:'Aufgaben durchsuchen',
         todayProgress:'Heute-Fortschritt', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'Backup JSON', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Suche fokussieren',
         phase:'Phase', pomodoro:'Pomodoro', short:'Kurze Pause', long:'Lange Pause', activeTask:'Aktive Task', select:'Wählen', active:'Aktiv', markDone:'Erledigt', markOpen:'Offen', remove:'Löschen', todayMark:'Heute', more:'Mehr', created:'Erstellt', doneAt:'Erledigt am', technicalMeta:'Technische Metadaten',
         phaseSkipped:'Phase übersprungen.', notifEnabled:'Desktop-Benachrichtigungen aktiviert.', notifDenied:'Benachrichtigungen nicht erlaubt.', notifUnsupported:'Notification API nicht unterstützt.',
         notifFile:'Desktop-Benachrichtigungen benötigen http(s), nicht file://.', swFile:'file:// Modus: Service Worker/Offline-Cache meist nicht verfügbar.', imported:'Aufgaben importiert.',
         pomoDone:'Pomodoro fertig', noActive:'Keine aktive Task gewählt.', warningSoon:'Phase endet in Kürze.', updateAvailable:'Ein App-Update ist verfügbar.', reload:'Neu laden', todayDone:'Tagesziel erreicht!',
-        breakHintsEnabled:'Pause-Hinweise anzeigen', breakHintsText:'Hinweise (eine Zeile pro Hinweis)', breakHintPrefix:'Tipp für die Pause', autoTheme:'Auto (System)'
+        breakHintsEnabled:'Pause-Hinweise anzeigen', breakHintsText:'Hinweise (eine Zeile pro Hinweis)', breakHintPrefix:'Tipp für die Pause', autoTheme:'Auto (System)', confirmDelete:'Aufgabe wirklich löschen?'
       },
       en: {
         appTitle:'PomoTask', language:'Language', settings:'Settings', pomodoroMinutes:'Pomodoro minutes', shortBreakMinutes:'Short-break minutes', longBreakMinutes:'Long-break minutes', longBreakEvery:'Long break every',
@@ -319,12 +298,14 @@
         newTask:'New task (todo.txt core format)', add:'Add', taskFormatHint:'Supports: x, (A), date, plain text + pomos:N.', all:'All', open:'Open', done:'Done', todayOnly:'Today',
         resetFilters:'Reset filters', advancedFilters:'Advanced filters', priorityAll:'Priority', priorityNone:'No priority',
         statusShort:'Status', contextShort:'Context', projectShort:'Project', kvShort:'KV', searchShort:'Search…',
+        start:'Start', pause:'Pause', reset:'Reset', skipPhase:'Skip phase',
+        taskInputLabel:'Task text', searchInputLabel:'Search tasks',
         todayProgress:'Today progress', importExport:'Import/Export', exportTxt:'Export tasks.txt', exportJson:'JSON backup', shortcutsHint:'Shortcuts: Space Start/Pause · R Reset · S Skip · / Focus search',
         phase:'Phase', pomodoro:'Pomodoro', short:'Short break', long:'Long break', activeTask:'Active task', select:'Select', active:'Active', markDone:'Done', markOpen:'Open', remove:'Delete', todayMark:'Today', more:'More', created:'Created', doneAt:'Completed', technicalMeta:'Technical metadata',
         phaseSkipped:'Phase skipped.', notifEnabled:'Desktop notifications enabled.', notifDenied:'Notifications not allowed.', notifUnsupported:'Notification API not supported.',
         notifFile:'Desktop notifications need http(s), not file://.', swFile:'file:// mode: service worker/offline cache usually unavailable.', imported:'tasks imported.',
         pomoDone:'Pomodoro done', noActive:'No active task selected.', warningSoon:'Phase ending soon.', updateAvailable:'An app update is available.', reload:'Reload', todayDone:'Daily goal reached!',
-        breakHintsEnabled:'Show break hints', breakHintsText:'Hints (one per line)', breakHintPrefix:'Break tip', autoTheme:'Auto (System)'
+        breakHintsEnabled:'Show break hints', breakHintsText:'Hints (one per line)', breakHintPrefix:'Break tip', autoTheme:'Auto (System)', confirmDelete:'Delete this task?'
       }
     };
 
@@ -507,6 +488,8 @@
       els.contextFilter.setAttribute('aria-label', t('contextShort'));
       els.projectFilter.setAttribute('aria-label', t('projectShort'));
       els.kvFilter.setAttribute('aria-label', t('kvShort'));
+      els.taskInput.setAttribute('aria-label', t('taskInputLabel'));
+      els.searchInput.setAttribute('aria-label', t('searchInputLabel'));
       els.contextFilter.placeholder = t('contextShort');
       els.projectFilter.placeholder = t('projectShort');
       els.kvFilter.placeholder = t('kvShort');
@@ -606,7 +589,13 @@
         remove.type = 'button';
         remove.textContent = t('remove');
         remove.className = 'warn';
-        remove.onclick = () => { state.tasks = state.tasks.filter(x => x.id !== task.id); if (state.activeTaskId === task.id) state.activeTaskId = null; render(); saveState(); };
+        remove.onclick = () => {
+          if (!window.confirm(t('confirmDelete'))) return;
+          state.tasks = state.tasks.filter(x => x.id !== task.id);
+          if (state.activeTaskId === task.id) state.activeTaskId = null;
+          render();
+          saveState();
+        };
 
         pop.append(todayBtn, toggle, remove);
         li.append(mainWrap, menu);
@@ -621,7 +610,7 @@
     function renderTimer() {
       els.phaseLabel.textContent = `${t('phase')}: ${phaseName(state.phase)}`;
       els.timerDisplay.textContent = formatMMSS(state.timerSeconds);
-      els.startPauseBtn.textContent = state.running ? 'Pause' : 'Start';
+      els.startPauseBtn.textContent = state.running ? t('pause') : t('start');
       updateDocumentTitle();
     }
 
