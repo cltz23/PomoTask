@@ -64,13 +64,23 @@
     .muted { color:var(--muted); font-size:var(--font-sm); line-height:var(--line-height-copy); }
     .toast { min-height:1.1rem; color:var(--ok); font-size:.9rem; }
     .task-list { list-style:none; margin:0; padding:0; display:grid; gap:.4rem; max-height:45vh; overflow:auto; }
-    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start; }
-    .task-item.active { outline:2px solid var(--accent); outline-offset:1px; }
+    .task-item { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .55rem; display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start; transition: all .15s ease; }
+    .task-item.active { 
+      outline:2px solid var(--accent); 
+      outline-offset:1px; 
+      background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 25%, rgba(0,0,0,.15));
+    }
+    .task-item.active:hover { 
+      background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+    }
     .task-main { border:0; background:transparent; color:inherit; text-align:left; padding:0; display:grid; gap:.28rem; cursor:pointer; }
     .task-main:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:.35rem; }
-    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; }
+    .task-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; word-break:break-word; color: var(--text); }
+    .task-item.active .task-line { font-weight: 600; color: var(--accent); }
     .task-meta { display:flex; gap:.3rem; flex-wrap:wrap; align-items:center; }
     .task-chip { border:1px solid color-mix(in srgb, var(--muted) 40%, var(--border)); color:var(--muted); border-radius:999px; font-size:.68rem; padding:.08rem .45rem; line-height:1.35; background: color-mix(in srgb, var(--surface) 80%, var(--muted) 10%); }
+    .task-item.active .task-chip { color: var(--accent-contrast); background: var(--accent); border-color: var(--accent); }
     .task-actions-menu { position:relative; }
     .task-actions-menu summary { list-style:none; cursor:pointer; border:1px solid var(--border); border-radius:.45rem; padding:.15rem .5rem; min-width:2rem; text-align:center; user-select:none; }
     .task-actions-menu summary::-webkit-details-marker { display:none; }
